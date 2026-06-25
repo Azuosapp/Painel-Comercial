@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel Comercial — Grupo Azuos</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;width:100%;background:#0b1c3a;overflow:hidden;font-family:"Segoe UI",system-ui,sans-serif;}
+  .frame{position:fixed;inset:0;width:100vw;height:100vh;border:0;opacity:0;visibility:hidden;transition:opacity .6s ease;}
+  .frame.ativo{opacity:1;visibility:visible;}
+  #overlay{position:fixed;inset:0;z-index:10;background:linear-gradient(135deg,#143a78,#1f5fbf);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;color:#fff;text-align:center;}
+  #overlay h1{font-size:3vw;letter-spacing:2px;}
+  #overlay p{font-size:1.2vw;opacity:.85;max-width:56ch;}
+  #go{font-size:1.6vw;padding:18px 52px;border:none;border-radius:999px;background:#f6c945;color:#143a78;
+    font-weight:800;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .15s;}
+  #go:hover{transform:scale(1.05);}
+  #dots{position:fixed;bottom:2.6vh;right:1.6vw;z-index:8;display:flex;gap:10px;}
+  #dots span{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.45);box-shadow:0 1px 4px rgba(0,0,0,.4);transition:.3s;}
+  #dots span.on{background:#f6c945;transform:scale(1.25);}
+  /* setas pra trocar de tela manualmente */
+  .nav{position:fixed;top:50%;transform:translateY(-50%);z-index:9;width:3.4vw;height:9vh;border:none;
+    border-radius:14px;background:rgba(20,58,120,.30);color:#fff;font-size:3.2vw;font-weight:900;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;line-height:1;transition:background .2s;box-shadow:0 4px 14px rgba(0,0,0,.25);}
+  .nav:hover{background:rgba(20,58,120,.6);}
+  .nav.prev{left:1vw;} .nav.next{right:1vw;}
+</style>
+</head>
+<body>
+  <iframe class="frame" data-nome="Foco do Dia"           src="agenda.html?loop=1"></iframe>
+  <iframe class="frame" data-nome="Agendamento e Reunião" src="tela1.html?loop=1"></iframe>
+  <iframe class="frame" data-nome="Ranking de Vendas"     src="tela2.html?loop=1"></iframe>
+  <iframe class="frame" data-nome="Meta de Faturamento"   src="tela3.html?loop=1"></iframe>
+
+  <div id="dots"></div>
+  <button class="nav prev" id="nav-prev" title="Tela anterior">‹</button>
+  <button class="nav next" id="nav-next" title="Próxima tela">›</button>
+
+  <div id="overlay">
+    <h1>📺 PAINEL COMERCIAL — GRUPO AZUOS</h1>
+    <p>Tela principal: Foco do Dia. A cada alguns minutos passa pelas telas de Agendamento, Ranking e Faturamento — e pula na hora quando há comemoração. Clique para iniciar (libera o som).</p>
+    <button id="go">▶ Iniciar painel</button>
+  </div>
+
+<script>
+  const HOME=0;                 // Foco do Dia é a tela principal
+  const TEMPO_HOME=60000;       // 60s na Foco do Dia
+  const TEMPO_TOUR=20000;       // 20s em cada uma das outras telas
+  const frames=[...document.querySelectorAll(".frame")];
+
+  // sequência: Foco do Dia (longo) -> tela1 -> tela2 -> tela3 -> repete
+  const SEQ=[{f:0,t:TEMPO_HOME},{f:1,t:TEMPO_TOUR},{f:2,t:TEMPO_TOUR},{f:3,t:TEMPO_TOUR}];
+
+  const dotsEl=document.getElementById("dots");
+  frames.forEach(()=>dotsEl.appendChild(document.createElement("span")));
+  const dots=[...dotsEl.children];
+
+  let passo=0, timer=null, rodando=false;
+  function mostrar(i){ frames.forEach((f,k)=>f.classList.toggle("ativo",k===i)); dots.forEach((d,k)=>d.classList.toggle("on",k===i)); }
+  function exec(){ const s=SEQ[passo]; mostrar(s.f); clearTimeout(timer); timer=setTimeout(()=>{ passo=(passo+1)%SEQ.length; exec(); }, s.t); }
+  function voltarHome(delay){ clearTimeout(timer); timer=setTimeout(()=>{ passo=0; exec(); }, delay); }
+
+  document.getElementById("go").addEventListener("click",()=>{
+    if(rodando) return; rodando=true;
+    document.getElementById("overlay").style.display="none";
+    frames.forEach(f=>{ try{ f.contentWindow.postMessage({tipo:"unlock"},"*"); }catch(e){} });
+    passo=0; exec();
+    if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+  });
+
+  // comemoração: pula pra tela que comemorou, segura a festa e volta pra Foco do Dia
+  addEventListener("message",(e)=>{
+    if(!rodando||!e.data||e.data.tipo!=="comemorar") return;
+    const idx=frames.findIndex(f=>f.contentWindow===e.source);
+    if(idx<0) return;
+    mostrar(idx);
+    const dur=Math.max(3000,Math.min(12000,e.data.dur||6000));
+    voltarHome(dur);
+  });
+
+  // setas: troca de tela manualmente (e o rodízio segue a partir dali)
+  function irPara(idx){ passo=((idx%SEQ.length)+SEQ.length)%SEQ.length; exec(); }
+  document.getElementById("nav-prev").addEventListener("click",()=>{ if(rodando) irPara(passo-1); });
+  document.getElementById("nav-next").addEventListener("click",()=>{ if(rodando) irPara(passo+1); });
+</script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Placar de Fechamentos — Grupo Azuos</title>
+<style>
+  :root{
+    --azul:#1f5fbf; --azul-escuro:#143a78; --azul-claro:#4f8fe0;
+    --laranja:#f08a3c; --verde:#4caf50; --amarelo:#f6c945;
+    --cinza-bg:#dfe3e8; --card-bg:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--cinza-bg);color:#1c2733;overflow:hidden;}
+
+  /* ---------- Overlay de início (libera o áudio) ---------- */
+  #start-overlay{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#143a78,#1f5fbf);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;gap:24px;}
+  #start-overlay h1{font-size:3vw;letter-spacing:2px;}
+  #start-overlay p{font-size:1.2vw;opacity:.85;max-width:50ch;}
+  #start-btn{font-size:1.6vw;padding:18px 48px;border:none;border-radius:999px;background:var(--amarelo);
+    color:#143a78;font-weight:800;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .15s;}
+  #start-btn:hover{transform:scale(1.05);}
+
+  #screen{height:100vh;width:100vw;display:flex;flex-direction:column;padding:1vh 1.6vw;}
+
+  /* ---------- Topo ---------- */
+  header.topbar{display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:.6vw;}
+  .brand img{height:7vw;width:auto;}
+  .brand .grupo{font-size:.75vw;color:#7a8aa0;letter-spacing:3px;text-transform:uppercase;line-height:1;}
+  .brand .azuos{font-size:2vw;font-weight:800;color:var(--azul);letter-spacing:1px;line-height:1;}
+  .titulo{text-align:center;flex:1;}
+  .titulo .perc{font-size:3.6vw;font-weight:800;color:var(--azul);font-style:italic;line-height:.95;}
+  .titulo .sub{font-size:2.1vw;color:var(--azul-claro);font-style:italic;line-height:.95;margin-top:1vh;}
+  /* ---------- Seletor de mês (dropdown) ---------- */
+  .mes-seletor{display:flex;align-items:center;gap:.4vw;background:#fff;border-radius:14px;padding:.5vh .9vw;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);border:2px solid #c3cedd;}
+  .mes-seletor .cal{font-size:1.6vw;line-height:1;}
+  #sel-mes{font-size:1.35vw;font-weight:800;color:var(--azul);border:none;background:transparent;cursor:pointer;
+    padding:.2vh .3vw;outline:none;text-transform:capitalize;max-width:11vw;}
+
+  /* ---------- Resumo / somatórios ---------- */
+  .resumo{display:flex;align-items:stretch;justify-content:center;gap:1.8vw;padding:1.8vh 0 2vh;}
+  .resumo-item{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:#fff;border-radius:18px;padding:1vh 2.2vw;box-shadow:0 6px 18px rgba(0,0,0,.14);min-width:16vw;}
+  .resumo-item .lbl{font-size:1.2vw;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#5a6b80;}
+  .resumo-item .num{font-size:3.8vw;font-weight:900;line-height:1;}
+  .resumo-item.rec{border-bottom:6px solid var(--azul);} .resumo-item.rec .num{color:var(--azul);}
+  .resumo-item.uni{border-bottom:6px solid var(--verde);} .resumo-item.uni .num{color:var(--verde);}
+  .resumo-item.total{background:linear-gradient(135deg,#143a78,#1f5fbf);min-width:21vw;}
+  .resumo-item.total .lbl{color:#cfe0ff;font-size:1.35vw;}
+  .resumo-item.total .num{color:#fff;font-size:5.2vw;}
+  .resumo-item.total .num small{font-size:1.5vw;font-weight:800;color:#ffd700;}
+
+  /* ---------- Painéis (2 torres) ---------- */
+  .paines{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1.4vw;min-height:0;}
+  .painel{position:relative;background:var(--card-bg);border-radius:20px;box-shadow:0 6px 22px rgba(0,0,0,.14);
+    display:flex;flex-direction:column;padding:1.2vh 1vw .8vh;overflow:hidden;}
+  .painel.rec{border-top:6px solid var(--azul);}
+  .painel.uni{border-top:6px solid var(--verde);}
+  .painel-cab{display:flex;align-items:baseline;justify-content:center;margin-bottom:.4vh;}
+  .painel-cab .nome-cat{font-size:1.8vw;font-weight:900;font-style:italic;letter-spacing:.5px;}
+  .painel.rec .nome-cat{color:var(--azul);}
+  .painel.uni .nome-cat{color:var(--verde);}
+  .painel-cab .tot{font-size:1.1vw;font-weight:800;color:#7a8aa0;}
+  .painel-cab .tot b{font-size:1.6vw;}
+  .painel.rec .tot b{color:var(--azul);}
+  .painel.uni .tot b{color:var(--verde);}
+
+  /* skyline de torres */
+  .skyline{flex:1;display:flex;align-items:flex-end;justify-content:space-around;gap:1vw;min-height:0;padding:0 .4vw;}
+  .torre-wrap{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;max-width:22%;}
+  .torre-coroa{font-size:1.8vw;line-height:1;height:1.9vw;}
+  .torre-foto{width:4.4vw;height:4.4vw;border-radius:50%;object-fit:cover;background:#dde6f0;border:.28vw solid var(--azul);
+    display:flex;align-items:center;justify-content:center;font-size:2vw;font-weight:800;color:var(--azul);
+    box-shadow:0 4px 12px rgba(0,0,0,.22);margin-bottom:.3vh;flex:none;z-index:2;}
+  .painel.uni .torre-foto{border-color:var(--verde);color:var(--verde);}
+  .torre-num{font-size:2vw;font-weight:900;line-height:1;}
+  .painel.rec .torre-num{color:var(--azul);}
+  .painel.uni .torre-num{color:var(--verde);}
+  /* área flexível onde a torre cresce (sobra depois de reservar foto/número/nome) */
+  .torre-area{flex:1;width:100%;min-height:0;display:flex;align-items:flex-end;justify-content:center;}
+  .torre{width:78%;border-radius:8px 8px 0 0;position:relative;overflow:hidden;
+    transition:height .9s cubic-bezier(.22,1,.36,1);box-shadow:0 -2px 10px rgba(0,0,0,.12) inset, 0 6px 14px rgba(0,0,0,.18);}
+  .painel.rec .torre{background:linear-gradient(180deg,#4f8fe0,#1f5fbf);}
+  .painel.uni .torre{background:linear-gradient(180deg,#7bd87f,#3a9b3e);}
+  /* janelinhas do prédio */
+  .torre::after{content:"";position:absolute;inset:0;opacity:.5;
+    background-image:repeating-linear-gradient(0deg, transparent 0 .9vw, rgba(255,255,255,.18) .9vw 1.5vw),
+      repeating-linear-gradient(90deg, transparent 0 .7vw, rgba(0,0,0,.10) .7vw 1.1vw);}
+  .torre.lider{box-shadow:0 0 0 .2vw #ffd700, 0 0 26px 6px rgba(255,215,0,.55), 0 6px 14px rgba(0,0,0,.18);}
+  .torre-nome{margin-top:.4vh;font-size:1.15vw;font-weight:800;font-style:italic;color:var(--azul-escuro);text-align:center;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+
+  /* ---------- Rodapé ---------- */
+  footer{display:flex;align-items:center;justify-content:center;gap:1vw;padding-top:.6vh;position:relative;}
+  .status{font-size:1vw;color:#41577a;font-weight:700;}
+  .status.erro{color:#c0392b;}
+  #demo-btn{position:fixed;bottom:8px;left:12px;z-index:6;font-size:.9vw;font-weight:700;color:#fff;border:none;
+    cursor:pointer;background:linear-gradient(135deg,#3a76c9,#1a6fd4);border-radius:999px;padding:.5vh 1.1vw;
+    box-shadow:0 4px 12px rgba(0,0,0,.25);}
+
+  /* ---------- Comemoração ---------- */
+  #confete{position:fixed;inset:0;z-index:900;pointer-events:none;}
+  #venda{position:fixed;inset:0;z-index:950;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(circle at center, rgba(20,58,120,.45), rgba(20,58,120,.78));backdrop-filter:blur(3px);}
+  #venda.show{display:flex;animation:vFade .35s;}
+  @keyframes vFade{from{opacity:0}to{opacity:1}}
+  .venda-card{display:flex;flex-direction:column;align-items:center;gap:1.4vh;animation:vBalanca 1s ease-in-out infinite;}
+  @keyframes vBalanca{0%,100%{transform:rotate(-4deg) translateY(0)}50%{transform:rotate(4deg) translateY(-10px)}}
+  .venda-foto-wrap{position:relative;padding:.6vw;border-radius:50%;
+    background:linear-gradient(135deg,#ffd700,#fff1a8,#ffcc33);box-shadow:0 0 50px 12px rgba(255,215,0,.7);}
+  .venda-foto{width:18vw;height:18vw;border-radius:50%;object-fit:cover;border:.4vw solid #fff;display:block;
+    background:#dde6f0;align-items:center;justify-content:center;display:flex;font-size:8vw;font-weight:800;color:var(--azul);}
+  /* ícone (sino/maleta) na LATERAL inferior direita da foto, transbordando a borda */
+  .venda-rojao{position:absolute;bottom:-1vw;right:-2.2vw;font-size:8.5vw;line-height:1;
+    filter:drop-shadow(0 4px 10px rgba(0,0,0,.45));z-index:3;}
+  .venda-nome{font-size:4.4vw;font-weight:900;color:#fff;font-style:italic;text-shadow:0 4px 18px rgba(0,0,0,.5);}
+  .venda-msg{font-size:2.2vw;font-weight:800;color:#ffd700;text-align:center;}
+</style>
+</head>
+<body>
+  <div id="start-overlay">
+    <h1>🏆 RANKING DE VENDAS</h1>
+    <p>Ranking de vendas do escritório. Clique para iniciar — o som das comemorações precisa de um toque seu.</p>
+    <button id="start-btn">Iniciar painel</button>
+  </div>
+
+  <div id="screen">
+    <header class="topbar">
+      <div class="brand">
+        <img src="assets/azuos.png" alt="Azuos"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'azuos',textContent:'AZUOS'}))"/>
+      </div>
+      <div class="titulo">
+        <div class="perc">Ranking de Vendas</div>
+        <div class="sub">Recorrente × Único</div>
+      </div>
+      <div class="mes-seletor">
+        <span class="cal">📅</span>
+        <select id="sel-mes" title="Selecionar mês"></select>
+      </div>
+    </header>
+
+    <div class="resumo">
+      <div class="resumo-item rec"><div class="lbl">🔔 Recorrente</div><div class="num" id="tot-rec">0</div></div>
+      <div class="resumo-item total"><div class="lbl">🏆 Total de Vendas</div><div class="num" id="tot-geral">0</div></div>
+      <div class="resumo-item uni"><div class="lbl">💼 Único</div><div class="num" id="tot-uni">0</div></div>
+    </div>
+
+    <div class="paines">
+      <div class="painel rec">
+        <div class="painel-cab"><div class="nome-cat">🔔 Recorrente</div></div>
+        <div class="skyline" id="sky-rec"></div>
+      </div>
+      <div class="painel uni">
+        <div class="painel-cab"><div class="nome-cat">💼 Único</div></div>
+        <div class="skyline" id="sky-uni"></div>
+      </div>
+    </div>
+
+    <footer><div class="status" id="status">Carregando…</div></footer>
+  </div>
+
+  <button id="demo-btn">▶ Testar (comemoração)</button>
+  <canvas id="confete"></canvas>
+  <audio id="som-sino" src="assets/som-meta.ogg" preload="auto"></audio>
+
+  <div id="venda">
+    <div class="venda-card">
+      <div class="venda-foto-wrap">
+        <div class="venda-rojao" id="venda-rojao">🔔</div>
+        <img class="venda-foto" id="venda-foto" alt=""/>
+      </div>
+      <div class="venda-nome" id="venda-nome"></div>
+      <div class="venda-msg" id="venda-msg"></div>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   FONTE DE DADOS
+   ============================================================ */
+const SHEET_ID="1e87Et34W-noR8FgB2Kw0j8YeONApF1R5fMKZOG8TC2M";
+const SHEET_NAME="Fechamento de comissão a partir de Março";
+const POLL_MS=60000;
+
+// Só estas 4 colaboradoras entram no ranking (responsável pelo preenchimento)
+const PESSOAS=[
+  {nome:"Giovana",    foto:"assets/giovana.jpg",   alias:["giovana"]},
+  {nome:"Caroline",   foto:"assets/caroline.jpg",  alias:["caroline","carol"]},
+  {nome:"Isabella",   foto:"assets/isabella.jpg",  alias:["isabella","isabela"]},
+  {nome:"Anna Luiza", foto:"assets/annaluiza.jpg", alias:["anna luiza","ana luiza","anna luisa","ana luisa","annaluiza"]},
+];
+const MESES_ABREV=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+
+function norm(s){ return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim().toLowerCase(); }
+function pessoaDe(resp){ const n=norm(resp); return PESSOAS.find(p=>p.alias.includes(n))||null; }
+
+/* CSV parser (lida com aspas) */
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else{ if(c==='"') q=true; else if(c===","){ row.push(cell); cell=""; }
+      else if(c==="\n"){ row.push(cell); rows.push(row); row=[]; cell=""; }
+      else if(c==="\r"){} else cell+=c; }
+  }
+  if(cell.length||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
+/* acha as colunas certas pelo NOME do cabeçalho (robusto a mudança de ordem) */
+function acharColunas(rows){
+  for(let i=0;i<Math.min(8,rows.length);i++){
+    const h=rows[i].map(norm);
+    const cStatus=h.findIndex(x=>x==="status");
+    const cRec=h.findIndex(x=>x.includes("recorr"));
+    if(cStatus<0||cRec<0) continue;
+    const cResp=h.findIndex(x=>x.includes("responsavel")&&x.includes("preenchimento"));
+    let cData=h.findIndex(x=>x.includes("data")&&x.includes("negocia"));
+    if(cData<0) cData=h.findIndex(x=>x.includes("data"));
+    if(cResp<0) continue;
+    return {hIdx:i, cStatus, cRec, cResp, cData};
+  }
+  return null;
+}
+
+/* fetch com re-tentativas (o gviz às vezes falha de forma intermitente) */
+async function fetchTexto(url, tentativas=3){
+  let erro;
+  for(let i=0;i<tentativas;i++){
+    try{ const r=await fetch(url+(url.includes("?")?"&":"?")+"_="+Date.now(),{cache:"no-store"});
+         if(r.ok) return await r.text(); erro=new Error("HTTP "+r.status); }
+    catch(e){ erro=e; }
+    await new Promise(s=>setTimeout(s, 700*(i+1)));
+  }
+  throw erro||new Error("falha");
+}
+/* lê a planilha e devolve as linhas de venda das 4 pessoas */
+async function lerPlanilha(){
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+  const rows=parseCSV(await fetchTexto(url));
+  const col=acharColunas(rows);
+  if(!col) throw new Error("cabeçalho não encontrado");
+  const linhas=[];
+  for(let i=col.hIdx+1;i<rows.length;i++){
+    const r=rows[i];
+    const status=norm(r[col.cStatus]);
+    if(!status.includes("financeiro")) continue;     // só ENVIADO P/ FINANCEIRO
+    const p=pessoaDe(r[col.cResp]);
+    if(!p) continue;                                  // só as 4
+    const tipo=norm(r[col.cRec]).includes("recorr")?"rec":"uni";
+    const md=(r[col.cData]||"").match(/(\d{2})\/(\d{4})/);
+    const mes=md?`${md[1]}/${md[2]}`:null;
+    linhas.push({nome:p.nome, tipo, mes});
+  }
+  return linhas;
+}
+
+/* ============================================================
+   ESTADO + RENDER
+   ============================================================ */
+let LINHAS=JSON.parse(localStorage.getItem("cacheVendas")||"[]"); // última leitura boa (não esvazia se falhar)
+let filtroMes="geral";    // "geral" ou "MM/AAAA"
+const vendaAnterior={};   // total por pessoa (geral) p/ detectar venda nova
+let primeiraLeitura=true;
+
+// total por pessoa E por tipo (rec/uni) — pra saber o tipo da venda nova
+function totalPorPessoaTipo(){
+  const t={}; PESSOAS.forEach(p=>{ t[p.nome+"|rec"]=0; t[p.nome+"|uni"]=0; });
+  LINHAS.forEach(l=>t[l.nome+"|"+l.tipo]++);
+  return t;
+}
+
+function mesesDisponiveis(){
+  const set=new Set(LINHAS.map(l=>l.mes).filter(Boolean));  // lista TODOS os meses que existem nos dados (inclui os novos sozinho)
+  return [...set].sort((a,b)=>{ const [ma,ya]=a.split("/"), [mb,yb]=b.split("/");
+    return (ya-yb)||(ma-mb); });
+}
+function rotuloMes(m){ const [mm,yy]=m.split("/"); const ab=MESES_ABREV[+mm-1]; return `${ab.charAt(0).toUpperCase()+ab.slice(1)}/${yy}`; } // "Jun/2026"
+
+// mês padrão da tela = mês ATUAL (se tiver dados); senão "Geral"
+function mesPadrao(){
+  const d=new Date(); const cur=`${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+  return mesesDisponiveis().includes(cur) ? cur : "geral";   // abre no mês atual automaticamente
+}
+
+// dropdown (setinha) p/ escolher o mês — não enche a tela de botões
+function renderSeletor(){
+  const sel=document.getElementById("sel-mes");
+  // meses do MAIS RECENTE pro mais antigo (Geral fica no topo)
+  const opts=[`<option value="geral">Geral</option>`]
+    .concat(mesesDisponiveis().slice().reverse().map(m=>`<option value="${m}">${rotuloMes(m)}</option>`));
+  sel.innerHTML=opts.join("");
+  sel.value=filtroMes;
+  sel.onchange=()=>{ filtroMes=sel.value; render(); };
+}
+
+function dadosFiltrados(){
+  const subset = filtroMes==="geral" ? LINHAS : LINHAS.filter(l=>l.mes===filtroMes);
+  const cont={};
+  PESSOAS.forEach(p=>cont[p.nome]={rec:0,uni:0});
+  subset.forEach(l=>cont[l.nome][l.tipo]++);
+  return cont;
+}
+
+function renderSkyline(elId, tipo, cont){
+  const el=document.getElementById(elId);
+  const arr=PESSOAS.map(p=>({p, n:cont[p.nome][tipo]}));
+  arr.sort((a,b)=>b.n-a.n);
+  const max=Math.max(1,...arr.map(a=>a.n));
+  const lider=arr[0].n;
+  el.innerHTML=arr.map(({p,n})=>{
+    const h = n===0 ? 3 : 14 + (n/max)*86;            // % da altura do skyline
+    const ini=p.nome.trim()[0];
+    const ehLider = n>0 && n===lider;
+    const foto=`<img class="torre-foto" src="${p.foto}" alt="${p.nome}"
+        onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'torre-foto',textContent:'${ini}'}))"/>`;
+    return `<div class="torre-wrap">
+        <div class="torre-coroa">${ehLider?"👑":""}</div>
+        ${foto}
+        <div class="torre-num">${n}</div>
+        <div class="torre-area"><div class="torre ${ehLider?"lider":""}" style="height:${h}%"></div></div>
+        <div class="torre-nome">${p.nome}</div>
+      </div>`;
+  }).join("");
+}
+
+function render(){
+  renderSeletor();
+  const cont=dadosFiltrados();
+  renderSkyline("sky-rec","rec",cont);
+  renderSkyline("sky-uni","uni",cont);
+  let tr=0,tu=0; PESSOAS.forEach(p=>{ tr+=cont[p.nome].rec; tu+=cont[p.nome].uni; });
+  document.getElementById("tot-rec").textContent=tr;
+  document.getElementById("tot-uni").textContent=tu;
+  document.getElementById("tot-geral").textContent=tr+tu;
+}
+
+/* ============================================================
+   ATUALIZAÇÃO AO VIVO + COMEMORAÇÃO
+   ============================================================ */
+const statusEl=document.getElementById("status");
+async function atualizar(){
+  try{
+    const novas=await lerPlanilha();
+    // detecta vendas novas (comparando total por pessoa E tipo)
+    const antes={...vendaAnterior};
+    LINHAS=novas;
+    try{ localStorage.setItem("cacheVendas", JSON.stringify(novas)); }catch(e){} // guarda última leitura boa
+    if(primeiraLeitura) filtroMes=mesPadrao();   // abre no mês atual
+    const agora=totalPorPessoaTipo();
+    render();
+    if(!primeiraLeitura){
+      PESSOAS.forEach(p=>["rec","uni"].forEach(tipo=>{
+        const k=p.nome+"|"+tipo;
+        const d=(agora[k]||0)-(antes[k]||0);
+        if(d>0) filaComemora.push({pessoa:p, tipo, n:d});
+      }));
+      tocarFila();
+    }
+    Object.keys(agora).forEach(k=>vendaAnterior[k]=agora[k]);
+    primeiraLeitura=false;
+    const d=new Date();
+    statusEl.textContent=`🟢 Última atualização: ${d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}`;
+    statusEl.classList.remove("erro");
+  }catch(e){
+    // falhou: mantém e mostra a ÚLTIMA leitura boa (cache), não esvazia
+    if(LINHAS.length){ if(primeiraLeitura) filtroMes=mesPadrao(); render(); }
+    statusEl.textContent = LINHAS.length
+      ? `⚠️ Sem conexão agora — mostrando últimos dados salvos`
+      : `⚠️ Sem conexão com a planilha — ${String(e.message||e)}`;
+    statusEl.classList.add("erro");
+  }
+}
+
+/* fila de comemorações (uma de cada vez) */
+const filaComemora=[];
+let comemorando=false;
+function tocarFila(){
+  if(comemorando||!filaComemora.length) return;
+  comemorando=true;
+  const {pessoa,tipo,n}=filaComemora.shift();
+  mostrarVenda(pessoa,tipo,n);
+  setTimeout(()=>{ comemorando=false; tocarFila(); }, 5200);
+}
+
+const vendaEl=document.getElementById("venda");
+let vendaTimer=null;
+function mostrarVenda(pessoa, tipo, n){
+  const foto=document.getElementById("venda-foto");
+  const ini=pessoa.nome.trim()[0];
+  foto.onerror=()=>{ foto.replaceWith(Object.assign(document.createElement("div"),{className:"venda-foto",id:"venda-foto",textContent:ini})); };
+  foto.src=pessoa.foto; foto.style.display="flex";
+  // ícone por tipo: Recorrente = sininho dourado 🔔 · Único = maletinha 💼
+  document.getElementById("venda-rojao").textContent = tipo==="rec" ? "🔔" : "💼";
+  document.getElementById("venda-nome").textContent=pessoa.nome;
+  const msg=document.getElementById("venda-msg");
+  if(tipo==="rec") msg.innerHTML = n>1 ? `Fechou <b>${n}</b> novas empresas! 🎉` : `Fechou mais uma empresa! 🎉`;
+  else            msg.innerHTML = n>1 ? `Fechou <b>${n}</b> novos serviços! 🎉` : `Fechou novo serviço! 🎉`;
+  vendaEl.classList.add("show");
+  tocarSino();
+  festaConfete(160);
+  clearTimeout(vendaTimer);
+  vendaTimer=setTimeout(()=>vendaEl.classList.remove("show"), 5000);
+  if(LOOP){ try{ parent.postMessage({tipo:"comemorar", dur:5300}, "*"); }catch(e){} }
+}
+
+/* ============================================================
+   SOM
+   ============================================================ */
+const somSino=document.getElementById("som-sino");
+let audioCtx=null;
+function unlockAudio(){
+  try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){}
+  try{ somSino.muted=true; somSino.play().then(()=>{somSino.pause();somSino.currentTime=0;somSino.muted=false;}).catch(()=>{somSino.muted=false;}); }catch(e){}
+}
+function tocarSino(){ try{ const a=somSino.cloneNode(); a.volume=1; a.play().catch(()=>{}); }catch(e){} }
+
+/* ============================================================
+   CONFETE
+   ============================================================ */
+const cvs=document.getElementById("confete"), cx=cvs.getContext("2d");
+let parts=[], rafOn=false;
+function resize(){ cvs.width=innerWidth; cvs.height=innerHeight; }
+addEventListener("resize",resize); resize();
+const CORES=["#1f5fbf","#4f8fe0","#f6c945","#f08a3c","#4caf50","#ffd700","#ff5a5a"];
+function festaConfete(qtd){
+  for(let i=0;i<qtd;i++){
+    parts.push({x:innerWidth*(.2+.6*Math.random()), y:innerHeight*.2+Math.random()*40,
+      vx:(Math.random()-.5)*7, vy:Math.random()*-9-3, g:.22+Math.random()*.12,
+      s:5+Math.random()*7, c:CORES[(Math.random()*CORES.length)|0], rot:Math.random()*6.28, vr:(Math.random()-.5)*.3});
+  }
+  if(!rafOn){ rafOn=true; loopConfete(); }
+}
+function loopConfete(){
+  cx.clearRect(0,0,cvs.width,cvs.height);
+  parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillStyle=p.c;
+    cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); cx.restore(); });
+  parts=parts.filter(p=>p.y<cvs.height+30);
+  if(parts.length) requestAnimationFrame(loopConfete); else rafOn=false;
+}
+
+/* ============================================================
+   DEMONSTRAÇÃO — simula uma venda nova de cada pessoa
+   ============================================================ */
+document.getElementById("demo-btn").addEventListener("click",()=>{
+  unlockAudio();
+  // mostra os dois tipos: recorrente (sino) e único (maleta)
+  filaComemora.push({pessoa:PESSOAS[0], tipo:"rec", n:1});  // 🔔 mais uma empresa
+  filaComemora.push({pessoa:PESSOAS[1], tipo:"uni", n:1});  // 💼 novo serviço
+  tocarFila();
+});
+
+/* ============================================================
+   START
+   ============================================================ */
+const LOOP = new URLSearchParams(location.search).get("loop")==="1";
+function iniciarPainel(comFullscreen){
+  unlockAudio();
+  document.getElementById("start-overlay").style.display="none";
+  if(!window.__pollTimer){ atualizar(); window.__pollTimer=setInterval(atualizar,POLL_MS); }
+  if(comFullscreen && document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen().catch(()=>{}); }
+}
+document.getElementById("start-btn").addEventListener("click",()=>iniciarPainel(true));
+if(LOOP){
+  const db=document.getElementById("demo-btn"); if(db) db.style.display="none";
+  addEventListener("message",e=>{ if(e.data&&e.data.tipo==="unlock") unlockAudio(); });
+  iniciarPainel(false);
+}
+
+// mostra na hora o que tem em cache (se houver) e já busca o atual
+if(LINHAS.length){ filtroMes=mesPadrao(); render(); }
+atualizar();
+</script>
+</body>
+</html>

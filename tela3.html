@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meta de Faturamento — Grupo Azuos</title>
+<style>
+  :root{
+    --azul:#1f5fbf; --azul-escuro:#143a78; --azul-claro:#4f8fe0;
+    --laranja:#f08a3c; --verde:#4caf50; --amarelo:#f6c945; --vermelho:#e74c3c;
+    --cinza-bg:#dfe3e8; --card-bg:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--cinza-bg);color:#1c2733;overflow:hidden;}
+
+  #start-overlay{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#143a78,#1f5fbf);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;gap:24px;}
+  #start-overlay h1{font-size:3vw;letter-spacing:2px;}
+  #start-overlay p{font-size:1.2vw;opacity:.85;max-width:50ch;}
+  #start-btn{font-size:1.6vw;padding:18px 48px;border:none;border-radius:999px;background:var(--amarelo);
+    color:#143a78;font-weight:800;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .15s;}
+  #start-btn:hover{transform:scale(1.05);}
+
+  #screen{height:100vh;width:100vw;display:flex;flex-direction:column;padding:1vh 1.6vw;gap:.4vh;}
+
+  /* Topo */
+  header.topbar{display:flex;align-items:center;justify-content:space-between;}
+  .brand img{height:7vw;width:auto;}
+  .brand .azuos{font-size:2vw;font-weight:800;color:var(--azul);}
+  .titulo{text-align:center;flex:1;}
+  .titulo .perc{font-size:3.6vw;font-weight:800;color:var(--azul);font-style:italic;line-height:.95;}
+  .titulo .sub{font-size:2.1vw;color:var(--azul-claro);font-style:italic;line-height:.95;margin-top:1vh;}
+  .mes-seletor{display:flex;align-items:center;gap:.4vw;background:#fff;border-radius:14px;padding:.5vh .9vw;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);border:2px solid #c3cedd;}
+  .mes-seletor .cal{font-size:1.6vw;line-height:1;}
+  #sel-mes{font-size:1.35vw;font-weight:800;color:var(--azul);border:none;background:transparent;cursor:pointer;
+    padding:.2vh .3vw;outline:none;text-transform:capitalize;max-width:11vw;}
+
+  /* Campo da meta */
+  .meta-input-wrap{display:flex;align-items:center;justify-content:center;gap:.5vw;font-size:1.2vw;font-weight:800;color:var(--azul-escuro);padding:1.4vh 0;}
+  .meta-input-wrap .pre{color:#5a6b80;font-weight:700;}
+  #meta-input{font-size:1.4vw;font-weight:900;color:var(--azul);width:11.5vw;text-align:right;
+    border:2px solid #c3cedd;border-radius:10px;padding:.2vh .6vw;outline:none;background:#fff;}
+  #meta-input:focus{border-color:var(--azul);}
+
+  /* Hero: valor total + barra (compacto, no topo) */
+  .hero-card{position:relative;background:linear-gradient(135deg,#143a78,#1f5fbf);color:#fff;border-radius:22px;
+    padding:1vh 3vw;text-align:center;box-shadow:0 8px 26px rgba(20,58,120,.32);margin:.2vh auto 0;min-width:60vw;}
+  .hero-card.batida{background:linear-gradient(135deg,#1e7d34,#2faa48);box-shadow:0 0 40px 8px rgba(76,175,80,.6);}
+  .hero-card .lbl{font-size:1.2vw;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#cfe0ff;}
+  .hero-card.batida .lbl{color:#eaffea;}
+  .hero-card .val{font-size:5vw;font-weight:900;line-height:1;margin:.2vh 0;}
+  .hero-card .meta-lbl{display:none;}
+  .fogos{font-size:1.8vw;letter-spacing:.5vw;height:0;overflow:hidden;opacity:0;transition:.3s;}
+  .hero-card.batida .fogos{height:auto;opacity:1;margin-top:.3vh;}
+
+  /* Barra de progresso da meta */
+  .meta-bar{position:relative;height:2.2vh;background:#eef2f6;border-radius:999px;overflow:hidden;margin-top:.6vh;
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.18);border:2px solid rgba(255,255,255,.5);}
+  .meta-fill{height:100%;width:0;border-radius:999px;transition:width 1s cubic-bezier(.22,1,.36,1),background .4s;}
+  .meta-info{text-align:center;font-size:1.25vw;font-weight:800;margin-top:.5vh;color:#fff;}
+  .meta-info .falta{color:#ffe9a8;}
+
+  /* Dois quadrados logo abaixo do hero (crescem pra preencher) */
+  .quadros{display:grid;grid-template-columns:1fr 1fr;gap:1.4vw;}
+  .quadro{background:#fff;border-radius:18px;padding:.9vh 2vw;box-shadow:0 5px 16px rgba(0,0,0,.13);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4vh;}
+  .quadro.rec{border-bottom:6px solid var(--azul);}
+  .quadro.uni{border-bottom:6px solid var(--verde);}
+  .quadro .q-lbl{font-size:1.3vw;font-weight:900;font-style:italic;}
+  .quadro.rec .q-lbl{color:var(--azul);} .quadro.uni .q-lbl{color:var(--verde);}
+  .quadro .q-val{font-size:2.2vw;font-weight:900;line-height:1;}
+  .quadro.rec .q-val{color:var(--azul);} .quadro.uni .q-val{color:var(--verde);}
+
+  /* Ranking horizontal (escala pra +pessoas) */
+  .meio{flex:1;display:flex;flex-direction:column;justify-content:space-between;min-height:0;gap:.6vh;}
+  .podio-bloco{display:flex;flex-direction:column;justify-content:center;gap:3.6vh;}
+  .podio-titulo{text-align:center;font-size:2vw;color:var(--azul-claro);font-style:italic;line-height:.95;}
+  .rank{display:flex;align-items:flex-start;justify-content:center;gap:2vw;flex-wrap:wrap;}
+  .rank-item{display:flex;flex-direction:column;align-items:center;gap:.8vh;position:relative;}
+  .rank-foto-wrap{position:relative;}
+  .rank-foto{width:6.8vw;height:6.8vw;border-radius:50%;object-fit:cover;border:.4vw solid var(--azul);background:#dde6f0;
+    display:flex;align-items:center;justify-content:center;font-size:3vw;font-weight:800;color:var(--azul);
+    box-shadow:0 6px 16px rgba(0,0,0,.22);}
+  .rank-pos{position:absolute;top:-1.2vh;left:50%;transform:translateX(-50%);
+    font-size:1.1vw;font-weight:900;color:#fff;background:var(--azul);border-radius:999px;
+    padding:.15vh .9vw;box-shadow:0 3px 8px rgba(0,0,0,.3);white-space:nowrap;}
+  .rank-nome{font-size:1.2vw;font-weight:800;color:var(--azul-escuro);}
+  .rank-val{font-size:1.65vw;font-weight:900;color:var(--verde);line-height:1;}
+  /* destaques do pódio */
+  .rank-item.r1 .rank-foto{width:8.6vw;height:8.6vw;border-color:#ffd700;}
+  .rank-item.r1 .rank-pos{background:#f6b800;font-size:1.25vw;}
+  .rank-item.r2 .rank-foto{border-color:#9aa6b3;}
+  .rank-item.r2 .rank-pos{background:#9aa6b3;}
+  .rank-item.r3 .rank-foto{border-color:#cd7f32;}
+  .rank-item.r3 .rank-pos{background:#bd7333;}
+
+  footer{display:flex;align-items:center;justify-content:center;}
+  .status{font-size:.95vw;color:#41577a;font-weight:700;}
+  .status.erro{color:#c0392b;}
+  #demo-btn{position:fixed;bottom:8px;left:12px;z-index:6;font-size:.9vw;font-weight:700;color:#fff;border:none;
+    cursor:pointer;background:linear-gradient(135deg,#3a76c9,#1a6fd4);border-radius:999px;padding:.5vh 1.1vw;box-shadow:0 4px 12px rgba(0,0,0,.25);}
+
+  #confete{position:fixed;inset:0;z-index:900;pointer-events:none;}
+  #festa-meta{position:fixed;inset:0;z-index:950;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(circle at center, rgba(20,58,120,.5), rgba(20,58,120,.82));backdrop-filter:blur(3px);}
+  #festa-meta.show{display:flex;animation:fmFade .35s;}
+  @keyframes fmFade{from{opacity:0}to{opacity:1}}
+  .fm-card{display:flex;flex-direction:column;align-items:center;gap:1vh;text-align:center;animation:fmBalanca 1s ease-in-out infinite;}
+  @keyframes fmBalanca{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.06) rotate(2deg)}}
+  .fm-icone{font-size:13vw;line-height:1;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5));}
+  .fm-titulo{font-size:5vw;font-weight:900;font-style:italic;color:#fff;text-shadow:0 4px 18px rgba(0,0,0,.5);}
+  .fm-sub{font-size:2.2vw;font-weight:800;color:#ffd700;}
+</style>
+</head>
+<body>
+  <div id="start-overlay">
+    <h1>💰 META DE FATURAMENTO</h1>
+    <p>Acompanhe o faturamento do mês rumo à meta. Clique para iniciar — o som das comemorações precisa de um toque seu.</p>
+    <button id="start-btn">Iniciar painel</button>
+  </div>
+
+  <div id="screen">
+    <header class="topbar">
+      <div class="brand">
+        <img src="assets/azuos.png" alt="Azuos"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'azuos',textContent:'AZUOS'}))"/>
+      </div>
+      <div class="titulo">
+        <div class="perc">Meta de Faturamento</div>
+        <div class="sub">Recorrente · Único · Total</div>
+      </div>
+      <div class="mes-seletor"><span class="cal">📅</span><select id="sel-mes" title="Selecionar mês"></select></div>
+    </header>
+
+    <div class="meio">
+    <div class="meta-input-wrap">
+      🎯 <span class="pre">Meta de</span> <span id="meta-mes-lbl">—</span><span class="pre">:</span>
+      R$ <input id="meta-input" type="text" inputmode="numeric" placeholder="0" />
+    </div>
+
+    <div class="hero-card" id="hero-card">
+      <div class="lbl" id="hero-lbl">💰 Faturamento do mês</div>
+      <div class="val" id="hero-val">R$ 0</div>
+      <div class="meta-lbl" id="hero-meta">Defina a meta do mês acima</div>
+      <div class="meta-bar"><div class="meta-fill" id="meta-fill"></div></div>
+      <div class="meta-info" id="meta-info">—</div>
+      <div class="fogos">🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥</div>
+    </div>
+
+    <div class="quadros">
+      <div class="quadro rec"><div class="q-lbl">🔔 Recorrente</div><div class="q-val" id="val-rec">R$ 0</div></div>
+      <div class="quadro uni"><div class="q-lbl">💼 Único</div><div class="q-val" id="val-uni">R$ 0</div></div>
+    </div>
+
+    <div class="podio-bloco">
+      <div class="podio-titulo">🏆 Ranking do mês — Valor fechado</div>
+      <div class="rank" id="podio"></div>
+    </div>
+    </div>
+
+    <footer><div class="status" id="status">Carregando…</div></footer>
+  </div>
+
+  <button id="demo-btn">▶ Testar (comemoração)</button>
+  <canvas id="confete"></canvas>
+  <audio id="som-sino" src="assets/som-meta.ogg" preload="auto"></audio>
+
+  <div id="festa-meta">
+    <div class="fm-card">
+      <div class="fm-icone" id="fm-icone">🏆</div>
+      <div class="fm-titulo" id="fm-titulo">META BATIDA!</div>
+      <div class="fm-sub" id="fm-sub"></div>
+    </div>
+  </div>
+
+<script>
+/* ============================================================
+   FONTE DE DADOS — mesma planilha da Tela 2
+   ============================================================ */
+const SHEET_ID="1e87Et34W-noR8FgB2Kw0j8YeONApF1R5fMKZOG8TC2M";
+const SHEET_NAME="Fechamento de comissão a partir de Março";
+const POLL_MS=60000;
+const MESES_NOME=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const MESES_ABREV=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const MARCOS=[50,80,100];
+// nome do mês -> "jun/26" (ano pela mesma heurística: mês <= atual = ano atual, senão ano anterior)
+function rotuloMesNome(nome){
+  const cur=new Date().getMonth()+1;
+  const n=MESES_NOME.findIndex(x=>norm(x)===norm(nome))+1;
+  if(n<1) return nome;
+  const ano=(n<=cur)?new Date().getFullYear():new Date().getFullYear()-1;
+  const ab=MESES_ABREV[n-1];
+  return `${ab.charAt(0).toUpperCase()+ab.slice(1)}/${ano}`;   // "Jun/2026"
+}
+
+// pessoas do departamento (para o pódio) — só estas têm foto
+const PESSOAS=[
+  {nome:"Giovana",    foto:"assets/giovana.jpg",   alias:["giovana"]},
+  {nome:"Caroline",   foto:"assets/caroline.jpg",  alias:["caroline","carol"]},
+  {nome:"Isabella",   foto:"assets/isabella.jpg",  alias:["isabella","isabela"]},
+  {nome:"Anna Luiza", foto:"assets/annaluiza.jpg", alias:["anna luiza","ana luiza","anna luisa","ana luisa","annaluiza"]},
+];
+
+function norm(s){ return (s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\s+/g," ").trim().toLowerCase(); }
+function pessoaDe(resp){ const n=norm(resp); return PESSOAS.find(p=>p.alias.includes(n))||null; }
+function valorBRL(n){ return n.toLocaleString("pt-BR",{style:"currency",currency:"BRL",minimumFractionDigits:2}); }
+function fmtMoeda(n){ return n.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}); } // 65000 -> "65.000,00"
+function parseValor(s){ const t=(s||"").replace(/r\$/i,"").replace(/\s/g,"").replace(/\./g,"").replace(",","."); const v=parseFloat(t); return isNaN(v)?0:v; }
+
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else{ if(c==='"') q=true; else if(c===","){ row.push(cell); cell=""; }
+      else if(c==="\n"){ row.push(cell); rows.push(row); row=[]; cell=""; }
+      else if(c==="\r"){} else cell+=c; } }
+  if(cell.length||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+function acharColunas(rows){
+  for(let i=0;i<Math.min(8,rows.length);i++){
+    const h=rows[i].map(norm);
+    const cStatus=h.findIndex(x=>x==="status");
+    const cRec=h.findIndex(x=>x.includes("recorr"));
+    if(cStatus<0||cRec<0) continue;
+    const cMesFech=h.findIndex(x=>x.includes("faturamento")&&x.includes("fechado"));
+    let cValor=h.findIndex(x=>x.includes("valor")&&x.includes("final"));
+    const cResp=h.findIndex(x=>x.includes("responsavel")&&x.includes("preenchimento"));
+    if(cMesFech<0||cValor<0) continue;
+    return {hIdx:i, cStatus, cRec, cMesFech, cValor, cResp};
+  }
+  return null;
+}
+async function fetchTexto(url, tentativas=3){
+  let erro;
+  for(let i=0;i<tentativas;i++){
+    try{ const r=await fetch(url+(url.includes("?")?"&":"?")+"_="+Date.now(),{cache:"no-store"});
+         if(r.ok) return await r.text(); erro=new Error("HTTP "+r.status); }
+    catch(e){ erro=e; }
+    await new Promise(s=>setTimeout(s, 700*(i+1)));
+  }
+  throw erro||new Error("falha");
+}
+async function lerPlanilha(){
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
+  const rows=parseCSV(await fetchTexto(url));
+  const col=acharColunas(rows);
+  if(!col) throw new Error("cabeçalho não encontrado");
+  const linhas=[];
+  for(let i=col.hIdx+1;i<rows.length;i++){
+    const r=rows[i];
+    if(!norm(r[col.cStatus]).includes("financeiro")) continue;
+    const mes=(r[col.cMesFech]||"").trim();
+    if(!mes) continue;
+    const tipo=norm(r[col.cRec]).includes("recorr")?"rec":"uni";
+    const valor=parseValor(r[col.cValor]);
+    const p=col.cResp>=0?pessoaDe(r[col.cResp]):null;
+    linhas.push({mes, tipo, valor, pessoa:p?p.nome:null});
+  }
+  return linhas;
+}
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+let LINHAS=JSON.parse(localStorage.getItem("cacheFat")||"[]"); // última leitura boa
+let mesSel="";
+let primeiraLeitura=true;
+const marcoAnterior={};
+
+function mesAtualNome(){ return MESES_NOME[new Date().getMonth()]; }  // mês atual automático
+function mesesDisponiveis(){
+  const cur=new Date().getMonth()+1;
+  const idx=m=>MESES_NOME.findIndex(x=>norm(x)===norm(m))+1;
+  const chave=m=>{ const n=idx(m); const ano=(n<=cur)?1:0; return ano*100+n; };
+  const set=new Set(LINHAS.map(l=>l.mes).filter(Boolean));
+  return [...set].sort((a,b)=>chave(b)-chave(a));
+}
+function somaMes(mes){
+  let rec=0, uni=0; const porPessoa={};
+  PESSOAS.forEach(p=>porPessoa[p.nome]=0);
+  LINHAS.filter(l=> mes==="geral" || norm(l.mes)===norm(mes)).forEach(l=>{
+    if(l.tipo==="rec") rec+=l.valor; else uni+=l.valor;
+    if(l.pessoa!=null) porPessoa[l.pessoa]+=l.valor;
+  });
+  return {rec, uni, total:rec+uni, porPessoa};
+}
+function getMeta(mes){ const v=localStorage.getItem("metaFat_"+norm(mes)); return v?parseFloat(v):0; }
+function setMeta(mes, valor){ localStorage.setItem("metaFat_"+norm(mes), String(valor||0)); }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderSeletor(){
+  const sel=document.getElementById("sel-mes");
+  sel.innerHTML=['<option value="geral">Geral</option>']
+    .concat(mesesDisponiveis().map(m=>`<option value="${m}">${rotuloMesNome(m)}</option>`)).join("");
+  sel.value=mesSel;
+  sel.onchange=()=>{ mesSel=sel.value; sincronizarMetaInput(); render(true); };
+}
+function sincronizarMetaInput(){
+  document.getElementById("meta-mes-lbl").textContent = mesSel==="geral" ? "Geral" : mesSel;
+  const m=getMeta(mesSel);
+  document.getElementById("meta-input").value = m>0 ? fmtMoeda(m) : "";
+}
+function corBarra(pct){
+  // degradê que vai enchendo (azul→verde→amarelo); VERDE sólido só quando bate
+  return pct>=100 ? "#3aa84a" : "linear-gradient(90deg,#4f8fe0,#4caf50,#f6c945)";
+}
+function renderPodio(porPessoa){
+  // ranking HORIZONTAL: 1º, 2º, 3º... em ordem (escala pra +pessoas)
+  const arr=PESSOAS.map(p=>({p, v:porPessoa[p.nome]||0})).sort((a,b)=>b.v-a.v);
+  const medalha=["🥇","🥈","🥉"];
+  document.getElementById("podio").innerHTML=arr.map((it,i)=>{
+    const ini=it.p.nome.trim()[0];
+    const foto=`<img class="rank-foto" src="${it.p.foto}" alt="${it.p.nome}"
+        onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'rank-foto',textContent:'${ini}'}))"/>`;
+    const cls = i<3 ? `r${i+1}` : "";
+    const badge = (i<3?medalha[i]+" ":"") + (i+1) + "º";
+    return `<div class="rank-item ${cls}">
+        <div class="rank-foto-wrap">${foto}<div class="rank-pos">${badge}</div></div>
+        <div class="rank-nome">${it.p.nome}</div>
+        <div class="rank-val">${valorBRL(it.v)}</div>
+      </div>`;
+  }).join("");
+}
+function render(semComemorar){
+  renderSeletor();
+  const alvo = mesSel==="geral" ? "Geral" : "de "+mesSel;   // "Geral" ou "de Junho"
+  const s=somaMes(mesSel);
+  document.getElementById("val-rec").textContent=valorBRL(s.rec);
+  document.getElementById("val-uni").textContent=valorBRL(s.uni);
+  document.getElementById("hero-lbl").textContent=`💰 Faturamento ${alvo}`;
+  document.getElementById("hero-val").textContent=valorBRL(s.total);
+  renderPodio(s.porPessoa);
+
+  const meta=getMeta(mesSel);
+  const fill=document.getElementById("meta-fill");
+  const info=document.getElementById("meta-info");
+  const heroMeta=document.getElementById("hero-meta");
+  const heroCard=document.getElementById("hero-card");
+  if(meta>0){
+    const pct=s.total/meta*100;
+    fill.style.width=Math.max(0,Math.min(100,pct))+"%";
+    fill.style.background=corBarra(pct);
+    heroMeta.textContent=`Meta ${alvo}: ${valorBRL(meta)}`;
+    if(pct>=100){
+      heroCard.classList.add("batida");
+      info.innerHTML=`🔥 <b>META BATIDA!</b> ${Math.round(pct)}% — ${valorBRL(s.total)} de ${valorBRL(meta)}`;
+    }else{
+      heroCard.classList.remove("batida");
+      info.innerHTML=`<b>${Math.round(pct)}%</b> da meta · <span class="falta">faltam ${valorBRL(meta-s.total)}</span>`;
+    }
+    const id=norm(mesSel);
+    const prev=marcoAnterior[id]||0;
+    const atual=MARCOS.filter(m=>pct>=m).pop()||0;
+    if(!semComemorar && atual>prev) comemorarMeta(atual, mesSel, s.total, meta);
+    marcoAnterior[id]=atual;
+  }else{
+    heroCard.classList.remove("batida");
+    fill.style.width="0%";
+    heroMeta.textContent=`Defina a meta ${alvo} no campo acima`;
+    info.innerHTML=`Defina a meta do mês para acompanhar a evolução`;
+  }
+}
+
+/* ============================================================
+   ATUALIZAÇÃO AO VIVO
+   ============================================================ */
+const statusEl=document.getElementById("status");
+async function atualizar(){
+  try{
+    LINHAS=await lerPlanilha();
+    try{ localStorage.setItem("cacheFat", JSON.stringify(LINHAS)); }catch(e){} // guarda última leitura boa
+    if(primeiraLeitura){
+      const disp=mesesDisponiveis(); const cur=mesAtualNome();
+      mesSel = disp.find(m=>norm(m)===norm(cur)) || disp[0] || cur;
+      sincronizarMetaInput();
+    }
+    render(primeiraLeitura);
+    primeiraLeitura=false;
+    const d=new Date();
+    statusEl.textContent=`🟢 Última atualização: ${d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}`;
+    statusEl.classList.remove("erro");
+  }catch(e){
+    // falhou: mantém e mostra a ÚLTIMA leitura boa (cache), não esvazia
+    if(LINHAS.length){
+      if(primeiraLeitura){ const disp=mesesDisponiveis(); const cur=mesAtualNome();
+        mesSel = disp.find(m=>norm(m)===norm(cur)) || disp[0] || cur; sincronizarMetaInput(); }
+      render(true);
+    }
+    statusEl.textContent = LINHAS.length
+      ? `⚠️ Sem conexão agora — mostrando últimos dados salvos`
+      : `⚠️ Sem conexão com a planilha — ${String(e.message||e)}`;
+    statusEl.classList.add("erro");
+  }
+}
+const metaInp=document.getElementById("meta-input");
+metaInp.addEventListener("focus",()=>{ const m=getMeta(mesSel); metaInp.value = m>0 ? String(Math.round(m)) : ""; }); // digita o número cru
+metaInp.addEventListener("input",()=>{
+  const v=parseInt(metaInp.value.replace(/\D/g,""),10)||0;     // só dígitos = reais
+  setMeta(mesSel, v);
+  const s=somaMes(mesSel);
+  marcoAnterior[norm(mesSel)] = v>0 ? (MARCOS.filter(m=> s.total/v*100 >=m).pop()||0) : 0;
+  render(true);
+});
+metaInp.addEventListener("blur",()=>{ const m=getMeta(mesSel); metaInp.value = m>0 ? fmtMoeda(m) : ""; }); // sai com vírgula: 65.000,00
+
+/* ============================================================
+   COMEMORAÇÃO DA META
+   ============================================================ */
+const festaEl=document.getElementById("festa-meta");
+let festaTimer=null;
+function comemorarMeta(marco, mes, total, meta){
+  const ic=document.getElementById("fm-icone");
+  const tit=document.getElementById("fm-titulo");
+  const sub=document.getElementById("fm-sub");
+  if(marco>=100){
+    ic.textContent="🏆"; tit.textContent="META BATIDA!";
+    sub.innerHTML=`${mes} fechou em ${valorBRL(total)} — meta de ${valorBRL(meta)} alcançada! 🔥🎉`;
+  }else{
+    ic.textContent="🚀"; tit.textContent="A meta está chegando!";
+    sub.innerHTML=`Já são <b>${marco}%</b> da meta de ${mes}! Faltam ${valorBRL(meta-total)}`;
+  }
+  festaEl.classList.add("show");
+  tocarSino(); festaConfete(marco>=100?260:160);
+  clearTimeout(festaTimer);
+  const dur = marco>=100?6500:5000;
+  festaTimer=setTimeout(()=>festaEl.classList.remove("show"), dur);
+  if(LOOP){ try{ parent.postMessage({tipo:"comemorar", dur:dur+300}, "*"); }catch(e){} }
+}
+
+/* SOM */
+const somSino=document.getElementById("som-sino");
+let audioCtx=null;
+function unlockAudio(){
+  try{ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){}
+  try{ somSino.muted=true; somSino.play().then(()=>{somSino.pause();somSino.currentTime=0;somSino.muted=false;}).catch(()=>{somSino.muted=false;}); }catch(e){}
+}
+function tocarSino(){ try{ const a=somSino.cloneNode(); a.volume=1; a.play().catch(()=>{}); }catch(e){} }
+
+/* CONFETE */
+const cvs=document.getElementById("confete"), cx=cvs.getContext("2d");
+let parts=[], rafOn=false;
+function resize(){ cvs.width=innerWidth; cvs.height=innerHeight; }
+addEventListener("resize",resize); resize();
+const CORES=["#1f5fbf","#4f8fe0","#f6c945","#4caf50","#ffd700","#ff5a5a","#3a9b3e"];
+function festaConfete(qtd){
+  for(let i=0;i<qtd;i++) parts.push({x:innerWidth*(.15+.7*Math.random()), y:innerHeight*.2+Math.random()*40,
+    vx:(Math.random()-.5)*7, vy:Math.random()*-9-3, g:.22+Math.random()*.12, s:5+Math.random()*7,
+    c:CORES[(Math.random()*CORES.length)|0], rot:Math.random()*6.28, vr:(Math.random()-.5)*.3});
+  if(!rafOn){ rafOn=true; loopConfete(); }
+}
+function loopConfete(){
+  cx.clearRect(0,0,cvs.width,cvs.height);
+  parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillStyle=p.c; cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); cx.restore(); });
+  parts=parts.filter(p=>p.y<cvs.height+30);
+  if(parts.length) requestAnimationFrame(loopConfete); else rafOn=false;
+}
+
+/* DEMONSTRAÇÃO — 50% -> 80% -> meta batida */
+document.getElementById("demo-btn").addEventListener("click",()=>{
+  unlockAudio();
+  const mes=mesSel, meta=getMeta(mes)||100000;
+  [50,80,100].forEach((mc,i)=> setTimeout(()=>comemorarMeta(mc, mes, meta*mc/100, meta), i*2600));
+});
+
+/* START */
+const LOOP = new URLSearchParams(location.search).get("loop")==="1";
+function iniciarPainel(comFullscreen){
+  unlockAudio();
+  document.getElementById("start-overlay").style.display="none";
+  if(!window.__pollTimer){ atualizar(); window.__pollTimer=setInterval(atualizar,POLL_MS); }
+  if(comFullscreen && document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen().catch(()=>{}); }
+}
+document.getElementById("start-btn").addEventListener("click",()=>iniciarPainel(true));
+if(LOOP){
+  const db=document.getElementById("demo-btn"); if(db) db.style.display="none";
+  addEventListener("message",e=>{ if(e.data&&e.data.tipo==="unlock") unlockAudio(); });
+  iniciarPainel(false);
+}
+// mostra na hora o que tem em cache (se houver) e já busca o atual
+if(LINHAS.length){ const disp=mesesDisponiveis(); const cur=mesAtualNome();
+  mesSel = disp.find(m=>norm(m)===norm(cur)) || disp[0] || cur; sincronizarMetaInput(); render(true); }
+atualizar();
+</script>
+</body>
+</html>

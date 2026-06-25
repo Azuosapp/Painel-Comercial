@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Percurso de Meta — Grupo Azuos</title>
+<style>
+  :root{
+    --azul:#1f5fbf;
+    --azul-escuro:#143a78;
+    --azul-claro:#4f8fe0;
+    --laranja:#f08a3c;
+    --verde:#4caf50;
+    --amarelo:#f6c945;
+    --cinza-bg:#dfe3e8;
+    --card-bg:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"Segoe UI",system-ui,sans-serif;
+    background:var(--cinza-bg);
+    color:#1c2733;
+    overflow:hidden;
+  }
+
+  /* ---------- Overlay de início (libera o áudio) ---------- */
+  #start-overlay{
+    position:fixed;inset:0;z-index:1000;
+    background:linear-gradient(135deg,#143a78,#1f5fbf);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#fff;text-align:center;gap:24px;
+  }
+  #start-overlay h1{font-size:3.2vw;letter-spacing:2px;}
+  #start-overlay p{font-size:1.3vw;opacity:.85;max-width:50ch;}
+  #start-btn{
+    font-size:1.6vw;padding:18px 48px;border:none;border-radius:999px;
+    background:var(--amarelo);color:#143a78;font-weight:800;cursor:pointer;
+    box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .15s;
+  }
+  #start-btn:hover{transform:scale(1.05);}
+
+  /* ---------- Estrutura geral ---------- */
+  #screen{height:100vh;width:100vw;display:flex;flex-direction:column;padding:1vh 1.6vw;}
+
+  header.topbar{
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:.6vw;}
+  .brand .grupo{font-size:.8vw;color:#7a8aa0;letter-spacing:3px;text-transform:uppercase;line-height:1;}
+  .brand .azuos{font-size:2.2vw;font-weight:800;color:var(--azul);letter-spacing:1px;line-height:1;}
+  .brand .logo-img{height:7vw;width:auto;display:none;}
+
+  .titulo{text-align:center;flex:1;}
+  .titulo .perc{font-size:3.6vw;font-weight:800;color:var(--azul);font-style:italic;line-height:.95;}
+  .titulo .meta{font-size:2.1vw;color:var(--azul-claro);font-style:italic;line-height:.95;}
+  .titulo .sub{font-size:.82vw;color:#5a6b80;margin-top:.4vh;letter-spacing:1px;text-transform:uppercase;}
+
+  .mes-seletor{display:flex;align-items:center;gap:.4vw;background:#fff;border-radius:14px;padding:.5vh .9vw;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);border:2px solid #c3cedd;}
+  .mes-seletor .cal{font-size:1.6vw;line-height:1;}
+  #sel-mes{font-size:1.35vw;font-weight:800;color:var(--azul);border:none;background:transparent;cursor:pointer;
+    padding:.2vh .3vw;outline:none;text-transform:capitalize;max-width:11vw;}
+
+  /* ---------- Cards das colaboradoras (3 faixas empilhadas) ---------- */
+  #cards{flex:1;display:grid;grid-template-rows:repeat(3,1fr);grid-template-columns:1fr;gap:1.2vh;min-height:0;}
+  .card{
+    position:relative;background:var(--card-bg);border-radius:20px;
+    box-shadow:0 6px 22px rgba(0,0,0,.14);
+    display:flex;flex-direction:row;overflow:hidden;
+    border:3px solid transparent;transition:border-color .4s, box-shadow .4s;
+  }
+  /* bordas por faixa de progresso */
+  .card.tier-yellow{border-color:var(--amarelo);box-shadow:0 0 22px rgba(246,201,69,.45);}
+  .card.tier-orange{border-color:var(--laranja);box-shadow:0 0 28px rgba(240,138,60,.55);}
+  .card.tier-green {border-color:var(--verde); box-shadow:0 0 34px rgba(76,175,80,.6);}
+  .card.tier-gold  {border-color:#d4af37;box-shadow:0 0 46px rgba(212,175,55,.85);
+    background:linear-gradient(180deg,#fffaf0,#fff7e0);}
+  @keyframes pulseGold{0%,100%{box-shadow:0 0 30px rgba(212,175,55,.6);}50%{box-shadow:0 0 60px rgba(212,175,55,1);}}
+  .card.tier-gold{animation:pulseGold 1.4s ease-in-out infinite;}
+  .card-bg-city{
+    position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,.85)),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Crect width='300' height='200' fill='%23e8edf3'/%3E%3Cg fill='%23cdd6e0'%3E%3Crect x='10' y='90' width='30' height='110'/%3E%3Crect x='50' y='60' width='34' height='140'/%3E%3Crect x='95' y='100' width='28' height='100'/%3E%3Crect x='133' y='70' width='32' height='130'/%3E%3Crect x='175' y='110' width='26' height='90'/%3E%3Crect x='210' y='55' width='36' height='145'/%3E%3Crect x='255' y='95' width='30' height='105'/%3E%3C/g%3E%3C/svg%3E");
+    background-size:cover;background-position:center;opacity:.5;
+  }
+
+  /* painel de identidade à esquerda */
+  .ident{
+    position:relative;z-index:2;width:19vw;flex:none;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:.4vh;padding:.4vh .8vw;border-right:2px solid #eef2f6;
+  }
+  .ident-top{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:.7vw;width:100%;}
+  .ident .nome{font-size:1.6vw;font-weight:800;font-style:italic;line-height:1.05;text-align:left;color:var(--azul-escuro);flex:1;min-width:0;word-break:break-word;}
+  .avatar{
+    width:5.2vw;height:5.2vw;border-radius:50%;object-fit:cover;
+    border:3px solid var(--azul);background:#dde6f0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:2.4vw;font-weight:800;color:var(--azul);flex:none;
+  }
+  .metric-row{display:flex;gap:.6vw;width:100%;}
+  .metric{flex:1;text-align:center;background:#f3f6fa;border-radius:14px;padding:.4vh .3vw;}
+  .metric .ic{font-size:1.2vw;}
+  .metric .lbl{font-size:.8vw;color:#5a6b80;text-transform:uppercase;letter-spacing:.4px;}
+  .metric .val{font-size:2.5vw;font-weight:900;line-height:1.02;}
+  .metric .frac{font-size:.95vw;color:#7a8aa0;font-weight:700;}
+  .metric.ag .val{color:var(--verde);}
+  .metric.re .val{color:var(--azul);}
+  /* marcos da escada (60%/80%/100%) pulsam pra chamar atenção */
+  @keyframes pulsarStep{0%,100%{transform:scale(1)}50%{transform:scale(1.4)}}
+  .stair text.step-pulse{
+    transform-box:fill-box;transform-origin:center;
+    animation:pulsarStep 1s ease-in-out infinite;
+    fill:#e0592b;font-weight:900;
+  }
+
+  /* escada ocupa o resto da faixa */
+  .stair-wrap{position:relative;z-index:2;flex:1;min-width:0;}
+  svg.stair{width:100%;height:100%;display:block;}
+
+  .badge-festa{
+    position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    background:var(--verde);color:#fff;font-weight:800;font-size:1vw;
+    padding:.35vh 1.1vw;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.2);
+    z-index:6;display:none;animation:pop .5s;white-space:nowrap;
+  }
+  .card.tier-green .badge-festa,.card.tier-gold .badge-festa{display:block;}
+  .card.tier-gold .badge-festa{background:#d4af37;color:#3a2a00;}
+  @keyframes pop{0%{transform:translateX(-50%) scale(0);}70%{transform:translateX(-50%) scale(1.15);}100%{transform:translateX(-50%) scale(1);}}
+  /* estrelas de "superou a meta" (dourado) */
+  .stars{position:absolute;inset:0;z-index:5;pointer-events:none;display:none;}
+  .card.tier-gold .stars{display:block;}
+  .stars span{position:absolute;font-size:1.6vw;animation:twinkle 1.2s ease-in-out infinite;}
+  .stars span:nth-child(1){top:10%;left:30%;animation-delay:0s;}
+  .stars span:nth-child(2){top:18%;left:62%;animation-delay:.3s;}
+  .stars span:nth-child(3){top:55%;left:46%;animation-delay:.6s;}
+  .stars span:nth-child(4){top:30%;left:80%;animation-delay:.9s;}
+  @keyframes twinkle{0%,100%{opacity:.3;transform:scale(.8);}50%{opacity:1;transform:scale(1.3);}}
+
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:900;}
+
+  /* ===== tela de CAMPEÃ (100%) ===== */
+  #vitoria{
+    position:fixed;inset:0;z-index:950;display:none;
+    align-items:center;justify-content:center;
+    background:radial-gradient(circle at center, rgba(20,40,80,.78), rgba(10,20,45,.92));
+    backdrop-filter:blur(4px);
+  }
+  #vitoria.show{display:flex;animation:vitFade .4s ease;}
+  @keyframes vitFade{from{opacity:0}to{opacity:1}}
+  .vit-card{
+    text-align:center;animation:vitBalanca 1.1s ease-in-out infinite;
+    transform-origin:center bottom;
+  }
+  @keyframes vitBalanca{
+    0%,100%{transform:rotate(-5deg) translateY(0)}
+    25%{transform:rotate(4deg) translateY(-12px)}
+    50%{transform:rotate(-4deg) translateY(0)}
+    75%{transform:rotate(5deg) translateY(-12px)}
+  }
+  .vit-foto-wrap{
+    position:relative;
+    display:inline-block;border-radius:50%;padding:.7vw;
+    background:linear-gradient(135deg,#ffd700,#fff1a8,#ffcc33);
+    box-shadow:0 0 50px 12px rgba(255,215,0,.7);
+  }
+  .vit-trofeu{
+    position:absolute;top:60%;left:50%;       /* começa na parte de baixo da bolinha */
+    transform:translateX(-50%) rotate(6deg);  /* centralizado, levinho de lado */
+    font-size:23vw;line-height:1;             /* grandão, ~tamanho da bolinha */
+    filter:drop-shadow(0 8px 20px rgba(0,0,0,.55));
+  }
+  .vit-foto{
+    width:24vw;height:24vw;border-radius:50%;object-fit:cover;
+    border:.5vw solid #fff;display:block;
+  }
+  .vit-nome{
+    font-size:6vw;font-weight:900;color:#fff;margin-top:13vw;
+    text-shadow:0 4px 14px rgba(0,0,0,.6);font-style:italic;
+  }
+  .vit-msg{font-size:3vw;color:#ffd700;font-weight:800;}
+  .vit-msg b{color:#fff;}
+
+  .status{
+    position:fixed;bottom:10px;left:50%;transform:translateX(-50%);
+    font-size:1.05vw;font-weight:700;color:#5a6b80;z-index:5;
+    background:rgba(255,255,255,.85);border-radius:999px;padding:.4vh 1.4vw;
+    box-shadow:0 2px 10px rgba(0,0,0,.1);
+  }
+  .status.erro{color:#c0392b;}
+  .status.demo{color:#1a6fd4;background:rgba(232,243,255,.95);}
+  #demo-btn{
+    position:fixed;bottom:10px;left:12px;z-index:6;cursor:pointer;
+    font-size:.95vw;font-weight:800;color:#fff;border:none;
+    background:linear-gradient(135deg,#3a76c9,#1a6fd4);
+    border-radius:999px;padding:.6vh 1.2vw;
+    box-shadow:0 3px 12px rgba(26,111,212,.4);
+    transition:transform .1s,box-shadow .15s;
+  }
+  #demo-btn:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(26,111,212,.55);}
+  #demo-btn:active{transform:translateY(1px);}
+  #demo-btn:disabled{opacity:.5;cursor:default;}
+</style>
+</head>
+<body>
+
+<div id="start-overlay">
+  <h1>PERCURSO DE META · GRUPO AZUOS</h1>
+  <p>Painel do time comercial. Clique para iniciar a exibição em tela cheia com som e animações de meta atingida.</p>
+  <button id="start-btn">▶ Iniciar painel</button>
+</div>
+
+<div id="screen">
+  <header class="topbar">
+    <div class="brand">
+      <img class="logo-img" src="assets/azuos.png" alt="Azuos" onload="this.style.display='block';this.nextElementSibling.style.display='none'"/>
+      <div>
+        <div class="grupo">grupo</div>
+        <div class="azuos">azuos</div>
+      </div>
+    </div>
+    <div class="titulo">
+      <div class="perc">Percurso de Meta</div>
+      <div class="meta">Agendamento e Reunião</div>
+    </div>
+    <div class="mes-seletor"><span class="cal">📅</span><select id="sel-mes" title="Selecionar mês"></select></div>
+  </header>
+
+  <div id="cards"></div>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<!-- tela de CAMPEÃ ao bater 100% -->
+<div id="vitoria">
+  <div class="vit-card">
+    <div class="vit-foto-wrap">
+      <img id="vit-foto" class="vit-foto" alt=""/>
+      <div class="vit-trofeu">🏆</div>
+    </div>
+    <div class="vit-nome" id="vit-nome"></div>
+    <div class="vit-msg" id="vit-msg"></div>
+  </div>
+</div>
+
+<div class="status" id="status">carregando…</div>
+<button id="demo-btn">▶ Testar (demonstração)</button>
+<audio id="som-sino" src="assets/som-meta.ogg" preload="auto"></audio>
+
+<script>
+/* ============================================================
+   CONFIG — planilhas individuais (aba lida pelo gid)
+   ============================================================ */
+const GID = "1559048548"; // aba de gestão
+const COLAB = [
+  { nome:"Caroline",  sheetId:"1PLyZenGGk_dtBGog8VbaV6SMvuEdY1XfZKBhU4Iej4k", foto:"assets/caroline.jpg",  cor:"#e0592b" },
+  { nome:"Isabella",  sheetId:"1LxFdFXZuZHiwqxTYq-_Sr0xgxt1pZIGwwrYX0lP44Z4", foto:"assets/isabella.jpg",  cor:"#1f5fbf" },
+  { nome:"Anna Luiza",sheetId:"104ITjFNAmOOLW3or9iXmSpNKsAZjlO_VyTCb7nzJKHc", foto:"assets/annaluiza.jpg", cor:"#e0592b", responsavel:"Anna" },
+];
+
+// Dados de exemplo (Junho/2026) — usados se a leitura ao vivo falhar.
+const FALLBACK = {
+  "Caroline":  { Agendamento:{q:4,m:10}, "Reunião":{q:2,m:10} },
+  "Isabella":  { Agendamento:{q:3,m:10}, "Reunião":{q:1,m:10} },
+  "Anna Luiza":{ Agendamento:{q:1,m:9},  "Reunião":{q:2,m:5}  },
+};
+
+const POLL_MS = 60000;         // re-leitura a cada 60s
+// Faixas de borda: 60%+ amarelo · 80%+ laranja · 90%+ verde (atingiu) · 100%+ dourado
+
+/* ============================================================
+   MÊS ATUAL  (formato MM/AAAA igual ao da planilha)
+   ============================================================ */
+// Mês atual AUTOMÁTICO (vira de mês sozinho todo dia 1º — não precisa editar).
+function mesAtual(){
+  const d = new Date();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  return `${mm}/${d.getFullYear()}`;
+}
+
+/* ============================================================
+   CSV parser (lida com aspas)
+   ============================================================ */
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
+      else cell+=c;
+    }else{
+      if(c==='"') q=true;
+      else if(c===","){ row.push(cell); cell=""; }
+      else if(c==="\n"){ row.push(cell); rows.push(row); row=[]; cell=""; }
+      else if(c==="\r"){}
+      else cell+=c;
+    }
+  }
+  if(cell.length||row.length){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
+/* Extrai {Agendamento:{q,m}, Reunião:{q,m}} da CSV de uma colaboradora,
+   adaptando-se à ordem das colunas e filtrando pelo mês atual. */
+function extrair(csvText){
+  const rows = parseCSV(csvText);
+  let hIdx = rows.findIndex(r => r.some(c => c.trim().toLowerCase()==="atividade"));
+  if(hIdx<0) return {};
+  const header = rows[hIdx].map(c=>c.trim().toLowerCase());
+  const col = name => header.findIndex(h=>h===name);
+  const cAtiv = col("atividade");
+  const cQtd  = col("quantidade");
+  const cMeta = col("meta");
+  const cMes  = col("mês")>=0?col("mês"):col("mes");
+  const porMes = {};   // { "MM/AAAA": {Agendamento,Reunião} } — TODOS os meses
+  for(let i=hIdx+1;i<rows.length;i++){
+    const r=rows[i];
+    const ativ=(r[cAtiv]||"").trim().toLowerCase();
+    const mesR=(r[cMes]||"").trim();
+    if(!/^\d{2}\/\d{4}$/.test(mesR)) continue;     // só linhas com mês MM/AAAA
+    const q=parseFloat((r[cQtd]||"").replace(",","."));
+    const m=parseFloat((r[cMeta]||"").replace(",","."));
+    if(!porMes[mesR]) porMes[mesR]={};
+    if(ativ.startsWith("agendamento")) porMes[mesR]["Agendamento"]={q:isNaN(q)?0:q,m:isNaN(m)?0:m};
+    if(ativ.startsWith("reuni"))       porMes[mesR]["Reunião"]   ={q:isNaN(q)?0:q,m:isNaN(m)?0:m};
+  }
+  return porMes;
+}
+
+async function fetchTexto(url, tentativas=3){
+  let erro;
+  for(let i=0;i<tentativas;i++){
+    try{ const r=await fetch(url+(url.includes("?")?"&":"?")+"_="+Date.now(),{cache:"no-store"});
+         if(r.ok) return await r.text(); erro=new Error("HTTP "+r.status); }
+    catch(e){ erro=e; }
+    await new Promise(s=>setTimeout(s, 700*(i+1)));
+  }
+  throw erro||new Error("falha");
+}
+async function lerColab(c){
+  const url=`https://docs.google.com/spreadsheets/d/${c.sheetId}/gviz/tq?tqx=out:csv&gid=${GID}`;
+  const txt=await fetchTexto(url);
+  const porMes=extrair(txt);
+  if(!porMes || !Object.keys(porMes).length) throw new Error("sem dados");
+  return porMes;   // todos os meses
+}
+
+/* ============================================================
+   ESCADA (SVG) — 10 degraus, marcadores por %
+   ============================================================ */
+// viewBox bem largo (~5.3:1) pra casar com a faixa do card na TV 16:9
+// e preencher o espaço — escada comprida/esticada e mais baixa.
+const VB_W=1600, VB_H=300;
+const X0=45, Y0=250;                 // origem (0%) embaixo à esquerda, baixa
+const STEP_W=132, STEP_H=16;         // 10 degraus longos (faixa bem esticada)
+const LAND=180;                      // patamar plano no topo = espaço dedicado ao 100%
+
+function ptNaEscada(p){
+  const f=Math.max(0,Math.min(100,p))/10; // 0..10
+  return { x:X0 + f*STEP_W, y:Y0 - f*STEP_H };
+}
+
+function pathEscada(){
+  let d=`M ${X0} ${Y0}`;
+  let x=X0,y=Y0;
+  for(let i=0;i<10;i++){ x+=STEP_W; d+=` L ${x} ${y}`; y-=STEP_H; d+=` L ${x} ${y}`; }
+  d+=` L ${x+LAND} ${y}`;            // patamar do 100% (estende reto pra dar espaço)
+  return d;
+}
+
+function marcador(x,y,fill,stroke,icon){
+  return `<g transform="translate(${x},${y})">
+    <polygon points="-10,26 10,26 0,44" fill="${fill}" stroke="${stroke}" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="-28" y="-28" width="56" height="56" rx="14" fill="${fill}" stroke="${stroke}" stroke-width="3"/>
+    <text x="0" y="12" font-size="32" text-anchor="middle">${icon}</text>
+  </g>`;
+}
+
+function svgEscada(ag, re, foto){
+  const pAg=ptNaEscada(ag), pRe=ptNaEscada(re);
+  const topX=X0+10*STEP_W, topY=Y0-10*STEP_H;
+  const landCx=topX+LAND/2;            // centro do patamar do 100%
+  const labels=[];
+  for(let i=0;i<=9;i++){
+    const x=X0+i*STEP_W, y=Y0-i*STEP_H;
+    // marcos de mudança de cor pulsam: 60% (amarelo), 80% (laranja)
+    const pulsa=(i===6||i===8)?' class="step-pulse"':'';
+    labels.push(`<text x="${x+6}" y="${y+26}"${pulsa} font-size="26" font-weight="700" fill="#3a76c9" font-style="italic">${i*10}%</text>`);
+  }
+  // 100% centralizado e destacado no patamar (espaço próprio, longe do 90%)
+  labels.push(`<text x="${landCx}" y="${topY+30}" class="step-pulse" font-size="30" font-weight="900" fill="#3a76c9" font-style="italic" text-anchor="middle">100%</text>`);
+
+  // ao bater 100%: troca o troféu do topo pela FOTO dela + troféu (igual à tela de campeã)
+  const bateu=Math.max(ag,re)>=100;
+  let topo;
+  if(bateu && foto){
+    const uid="t"+Math.random().toString(36).slice(2,8);
+    // composição compacta, centrada no PATAMAR do 100% (espaço dedicado, longe do 90%)
+    const cx=landCx, cy=topY-48, R=32, Ri=R-4;
+    topo=`
+      <defs><clipPath id="${uid}"><circle cx="${cx}" cy="${cy}" r="${Ri}"/></clipPath></defs>
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="#ffd700"/>
+      <circle cx="${cx}" cy="${cy}" r="${R-3}" fill="#1a4b8c"/>
+      <image href="${foto}" xlink:href="${foto}" x="${cx-Ri}" y="${cy-Ri}" width="${Ri*2}" height="${Ri*2}" clip-path="url(#${uid})" preserveAspectRatio="xMidYMid slice"/>
+      <text x="${cx}" y="${cy+R+18}" font-size="44" text-anchor="middle" transform="rotate(8 ${cx} ${cy+R+18})" filter="drop-shadow(0 3px 6px rgba(0,0,0,.5))">🏆</text>`;
+  } else {
+    topo=`<text x="${landCx}" y="${topY-8}" font-size="48" text-anchor="middle">🏆</text>`;
+  }
+
+  return `
+  <svg class="stair" viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="xMidYMax meet" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <path d="${pathEscada()}" fill="none" stroke="#2b3a4d" stroke-width="3" stroke-linejoin="round"/>
+    ${topo}
+    <!-- marcadores iguais (mesmo tamanho e mesma distância da escada) -->
+    ${(()=>{ const off=40, sep=(Math.abs(ag-re)<5)?54:0;
+      // ao bater 100% a foto+troféu ocupa o topo: os pinos vão pra LATERAL pra não cobrir a foto
+      const agTopo=ag>=100, reTopo=re>=100;
+      // pinos do 100% ficam no PATAMAR, à esquerda da foto (dentro do espaço do 100%)
+      const cyFoto=topY-48, sideX=landCx-32-40, ambos=agTopo&&reTopo;
+      const posAg=agTopo?{x:sideX, y:ambos?cyFoto-18:cyFoto+4}:{x:pAg.x-2, y:pAg.y-off};
+      const posRe=reTopo?{x:sideX, y:ambos?cyFoto+30:cyFoto+4}:{x:pRe.x-2, y:pRe.y-off-sep};
+      return marcador(posAg.x, posAg.y, "#fff",    "#4caf50", "📅") +
+             marcador(posRe.x, posRe.y, "#3a76c9", "#3a76c9", "🎥"); })()}
+    <!-- rótulos por último: ficam sempre por cima, nunca apagados por imagem/troféu -->
+    ${labels.join("")}
+  </svg>`;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+const cardsEl=document.getElementById("cards");
+const statusEl=document.getElementById("status");
+const tierAnterior={}; // controla cor/badge ao subir de faixa
+const marcoAnterior={}; // controla disparo do som nos marcos 60/80/100
+const estadoColab={};   // { nome: { "MM/AAAA": {Agendamento,Reunião} } } — todos os meses
+let mesSel="";          // mês selecionado no dropdown
+
+function pct(o){ return (o&&o.m>0)? (o.q/o.m*100) : 0; }
+
+function render(estado, semComemorar){
+  cardsEl.innerHTML="";
+  COLAB.forEach(c=>{
+    const d=estado[c.nome]||{};
+    const ag=d["Agendamento"]||{q:0,m:0};
+    const re=d["Reunião"]||{q:0,m:0};
+    const pAg=pct(ag), pRe=pct(re);
+    const card=document.createElement("div");
+    card.className="card";
+    card.dataset.nome=c.nome;
+    const ini=c.nome.trim()[0];
+    card.innerHTML=`
+      <div class="card-bg-city"></div>
+      <div class="stars"><span>⭐</span><span>🌟</span><span>✨</span><span>⭐</span></div>
+      <div class="badge-festa"></div>
+      <div class="ident">
+        <div class="ident-top">
+          <img class="avatar" src="${c.foto}" alt="${c.nome}"
+               onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'avatar',textContent:'${ini}'}))"/>
+          <div class="nome">${c.nome}</div>
+        </div>
+        <div class="metric-row">
+          <div class="metric ag">
+            <div class="ic">📅</div><div class="lbl">Agend.</div>
+            <div class="val">${Math.round(pAg)}%</div>
+            <div class="frac">${ag.q} / ${ag.m||"–"}</div>
+          </div>
+          <div class="metric re">
+            <div class="ic">🎥</div><div class="lbl">Reunião</div>
+            <div class="val">${Math.round(pRe)}%</div>
+            <div class="frac">${re.q} / ${re.m||"–"}</div>
+          </div>
+        </div>
+      </div>
+      <div class="stair-wrap">${svgEscada(pAg,pRe,c.foto)}</div>`;
+    cardsEl.appendChild(card);
+
+    // faixa de progresso (usa a maior das duas metas)
+    const pTop=Math.max(pAg,pRe);
+    const t=tier(pTop);
+    if(t!=="none") card.classList.add("tier-"+t);
+    const badge=card.querySelector(".badge-festa");
+    if(t==="gold") badge.textContent="🌟 Superou a meta! 🌟";
+    else if(t==="green") badge.textContent="🎉 Meta atingida! 🎉";
+
+    // comemora (som + foguetinhos) ao CRUZAR 60/80/100 — INDEPENDENTE em agendamento e reunião.
+    // Se o agendamento chega no marco e depois a reunião também chega, comemora as DUAS vezes.
+    const MARCOS=[60,80,100];
+    [["ag",pAg],["re",pRe]].forEach(([chave,pv])=>{
+      const id=c.nome+"|"+chave+"|"+mesSel;           // marco por mês (não confunde ao trocar)
+      const prev=marcoAnterior[id]||0;
+      const atual=MARCOS.filter(m=>pv>=m).pop()||0;
+      if(!semComemorar && atual>prev){
+        tocarSinos();               // barulhinho de comemoração
+        festejar(card, t==="gold"); // foguetinhos nos 3 marcos
+        if(atual===100 && prev<100) mostrarVitoria(c, chave); // tela de campeã ao bater 100% (com o tipo)
+      }
+      marcoAnterior[id]=atual;
+    });
+    tierAnterior[c.nome]=t;
+  });
+}
+
+function tier(p){
+  if(p>100) return "gold";
+  if(p>=90)  return "green";
+  if(p>=80)  return "orange";
+  if(p>=60)  return "yellow";
+  return "none";
+}
+
+/* ============================================================
+   CONFETE + SOM
+   ============================================================ */
+const cv=document.getElementById("confetti");
+const ctx=cv.getContext("2d");
+let parts=[];
+function resize(){cv.width=innerWidth;cv.height=innerHeight;}
+addEventListener("resize",resize);resize();
+
+function festejar(card, ouro){
+  const r=card.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/3;
+  const n=ouro?220:130;
+  const dourado=["#d4af37","#ffd700","#fff1a8","#ffcc33"];
+  for(let i=0;i<n;i++){
+    parts.push({
+      x:cx,y:cy,
+      vx:(Math.random()-.5)*16,
+      vy:(Math.random()*-13)-4,
+      g:.35+Math.random()*.2,
+      size:6+Math.random()*8,
+      color: ouro ? dourado[i%dourado.length] : `hsl(${Math.random()*360},90%,60%)`,
+      life:130+Math.random()*70,
+    });
+  }
+}
+// Tela grande de CAMPEÃ ao bater 100% — foto da colaboradora + troféu, balançando
+const vitEl=document.getElementById("vitoria");
+let vitTimer=null;
+const MESES_NOME=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+function mostrarVitoria(c, tipo){
+  const foto=document.getElementById("vit-foto");
+  const nome=document.getElementById("vit-nome");
+  const msg=document.getElementById("vit-msg");
+  foto.src=c.foto;
+  foto.onerror=()=>{ foto.style.display="none"; };
+  foto.style.display="block";
+  nome.textContent=c.nome;
+  const label = tipo==="re" ? "Reunião" : "Agendamento";
+  const icone = tipo==="re" ? "🎥" : "📅";
+  const mes = MESES_NOME[new Date().getMonth()];
+  msg.innerHTML=`${icone} Bateu a meta de <b>${label}</b><br>de ${mes}! 🎉`;
+  vitEl.classList.add("show");
+  // chuva de confete dourado cobrindo a tela toda
+  for(let i=0;i<260;i++){
+    parts.push({
+      x:Math.random()*cv.width, y:-20-Math.random()*cv.height*0.4,
+      vx:(Math.random()-.5)*6, vy:Math.random()*4+2,
+      g:.18+Math.random()*.15, size:7+Math.random()*9,
+      color:["#d4af37","#ffd700","#fff1a8","#ffcc33","#fff"][i%5],
+      life:200+Math.random()*120,
+    });
+  }
+  clearTimeout(vitTimer);
+  vitTimer=setTimeout(()=>{ vitEl.classList.remove("show"); }, 6500); // some sozinha
+  if(LOOP){ try{ parent.postMessage({tipo:"comemorar", dur:6800}, "*"); }catch(e){} } // pede pro rodízio mostrar esta tela
+}
+
+function loopConfetti(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  parts=parts.filter(p=>p.life>0);
+  parts.forEach(p=>{
+    p.vy+=p.g;p.x+=p.vx;p.y+=p.vy;p.life--;
+    ctx.fillStyle=p.color;
+    ctx.fillRect(p.x,p.y,p.size,p.size*0.6);
+  });
+  requestAnimationFrame(loopConfetti);
+}
+loopConfetti();
+
+let audioCtx=null;
+function unlockAudio(){
+  if(!audioCtx){
+    try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+  }
+  // navegadores criam o contexto "suspenso" — precisa retomar depois de um clique
+  if(audioCtx.state==="suspended") audioCtx.resume();
+  // destrava o arquivo de sino (autoplay exige 1 play após gesto do usuário)
+  try{
+    const s=document.getElementById("som-sino");
+    s.muted=true;
+    s.play().then(()=>{ s.pause(); s.currentTime=0; s.muted=false; }).catch(()=>{ s.muted=false; });
+  }catch(e){}
+}
+
+// celebração sonora = arquivo enviado pela usuária (assets/som-meta.ogg), toca a cada marco 60/80/100
+const somSino=document.getElementById("som-sino");
+function tocarSinos(){
+  try{
+    const a=somSino.cloneNode();   // clone permite tocar sobreposto se 2 metas baterem juntas
+    a.volume=1.0;
+    a.play().catch(()=>{});
+  }catch(e){}
+}
+
+/* ============================================================
+   CICLO DE LEITURA
+   ============================================================ */
+let primeiraLeitura1=true;
+async function atualizar(){
+  let erros=0, usouCache=0;
+  await Promise.all(COLAB.map(async c=>{
+    try{ const dd=await lerColab(c);
+         // ACUMULA: mantém os meses já vistos e adiciona/atualiza o(s) mês(es) lido(s) agora
+         const hist=Object.assign({}, estadoColab[c.nome]||{}, dd);
+         estadoColab[c.nome]=hist;
+         try{ localStorage.setItem("cacheColab2_"+c.nome, JSON.stringify(hist)); }catch(e){} }
+    catch(e){
+      erros++;
+      const cache=localStorage.getItem("cacheColab2_"+c.nome);
+      if(cache){ estadoColab[c.nome]=JSON.parse(cache); usouCache++; }
+      else if(!estadoColab[c.nome]) estadoColab[c.nome]={};
+    }
+  }));
+  // mês padrão = atual (automático); se não tiver dados do mês atual, usa o mais recente
+  const meses=mesesDisponiveisColab();
+  if(!mesSel || !meses.includes(mesSel)){
+    mesSel = meses.includes(mesAtual()) ? mesAtual() : (meses[meses.length-1]||mesAtual());
+  }
+  // comemora só em atualização ao vivo do MÊS ATUAL (não no 1º load nem ao trocar de mês)
+  renderMes(!primeiraLeitura1 && mesSel===mesAtual());
+  primeiraLeitura1=false;
+  const d=new Date();
+  const agora=d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+  if(erros===0){ statusEl.textContent=`🟢 Última atualização: ${agora}`; statusEl.classList.remove("erro"); }
+  else if(usouCache===erros && usouCache>0){ statusEl.textContent=`⚠️ Sem conexão agora — mostrando últimos dados salvos · ${agora}`; statusEl.classList.add("erro"); }
+  else if(erros<COLAB.length){ statusEl.textContent=`⚠️ Atualização parcial (${erros} sem leitura) · ${agora}`; statusEl.classList.add("erro"); }
+  else { statusEl.textContent=`⚠️ Sem conexão com as planilhas · ${agora}`; statusEl.classList.add("erro"); }
+}
+
+/* meses disponíveis (união de todos os colaboradores), mais recente primeiro */
+function mesesDisponiveisColab(){
+  const set=new Set();
+  Object.values(estadoColab).forEach(m=>Object.keys(m||{}).forEach(k=>set.add(k)));
+  return [...set].sort((a,b)=>{ const [ma,ya]=a.split("/"), [mb,yb]=b.split("/"); return (ya-yb)||(ma-mb); });
+}
+const MESES_ABREV1=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+function rotuloMes1(m){ const [mm,yy]=m.split("/"); const ab=MESES_ABREV1[+mm-1]||mm; return `${ab.charAt(0).toUpperCase()+ab.slice(1)}/${yy}`; }
+function renderSeletor1(){
+  const sel=document.getElementById("sel-mes");
+  const meses=mesesDisponiveisColab().slice().reverse(); // mais recente primeiro
+  sel.innerHTML=meses.map(m=>`<option value="${m}">${rotuloMes1(m)}</option>`).join("");
+  if(mesSel) sel.value=mesSel;
+  sel.onchange=()=>{ mesSel=sel.value; renderMes(false); }; // trocar de mês não comemora
+}
+function renderMes(comemorar){
+  renderSeletor1();
+  const estado={};
+  COLAB.forEach(c=>{ estado[c.nome]=(estadoColab[c.nome]&&estadoColab[c.nome][mesSel]) || {Agendamento:{q:0,m:0},Reunião:{q:0,m:0}}; });
+  render(estado, !comemorar);
+}
+
+/* ============================================================
+   DEMONSTRAÇÃO — simula uma atualização em tempo real,
+   subindo as porcentagens por todas as faixas até estourar a meta,
+   com confete e aplausos a cada faixa atingida.
+   ============================================================ */
+let demoTimer=null, demoRodando=false;
+function demo(){
+  if(demoRodando) return;               // já rodando
+  demoRodando=true;
+  unlockAudio();                        // garante som (precisa de clique do usuário)
+  const btn=document.getElementById("demo-btn");
+  btn.disabled=true;
+  if(window.__pollTimer){ clearInterval(window.__pollTimer); window.__pollTimer=null; } // pausa leitura ao vivo
+  // zera o controle de faixa para as festas dispararem de novo
+  COLAB.forEach(c=>{ tierAnterior[c.nome]="none"; });
+  for(const k in marcoAnterior) delete marcoAnterior[k];
+
+  // DEMONSTRAÇÃO de TODAS, em sequência: cada uma sobe por 60/80/100 com a
+  // premiação completa (som, foguetes, foto+troféu no topo, pinos na lateral,
+  // tela de campeã). Quem já terminou fica concluída no topo; a próxima começa
+  // depois da tela de campeã sumir, pra cada festa aparecer sozinha.
+  const META=10, base=0.3, fim=1.12;
+  const concluido={};                   // nomes que já bateram a meta nesta demo
+  let idx=0;                            // colaboradora que está subindo agora
+
+  function pintar(p){
+    const est={};
+    COLAB.forEach((c,i)=>{
+      let ag, re;
+      if(concluido[c.nome]){ ag=fim; re=fim; }          // já concluída: fica no topo
+      else if(i===idx){
+        ag=Math.min(p*1.1, fim);                        // agendamento sobe primeiro
+        re=Math.min(Math.max(p-0.15,0)*1.1, fim);       // reunião vem logo atrás
+      } else { ag=base; re=base; }                      // ainda não começou
+      est[c.nome]={
+        "Agendamento":{q:Math.round(ag*META*10)/10, m:META},
+        "Reunião":{q:Math.round(re*META*10)/10, m:META}
+      };
+    });
+    render(est);
+  }
+
+  function encerrar(){
+    demoTimer=null; demoRodando=false;
+    btn.disabled=false;
+    statusEl.classList.remove("demo");
+    COLAB.forEach(c=>{ tierAnterior[c.nome]="none"; });
+    for(const k in marcoAnterior) delete marcoAnterior[k];
+    atualizar();                        // volta aos dados reais
+    window.__pollTimer=setInterval(atualizar,POLL_MS);
+  }
+
+  function subirUma(){
+    if(idx>=COLAB.length){
+      // frame final: TODAS concluídas no topo. É aqui que a reunião da ÚLTIMA
+      // cruza 100% (durante o ramp ela só chega a ~93%), disparando a festa/tela
+      // de campeã da reunião dela. Espera essa última festa terminar e encerra.
+      statusEl.textContent="🏆 DEMONSTRAÇÃO — todas bateram a meta!";
+      pintar(1.2);
+      setTimeout(encerrar, 7500);
+      return;
+    }
+    statusEl.textContent=`▶ DEMONSTRAÇÃO (${COLAB[idx].nome}) em andamento…`;
+    statusEl.classList.add("demo"); statusEl.classList.remove("erro");
+    let p=0;
+    demoTimer=setInterval(()=>{
+      p+=0.02;
+      pintar(p);
+      if(p>=1.0){
+        clearInterval(demoTimer); demoTimer=null;
+        concluido[COLAB[idx].nome]=true;
+        idx++;
+        setTimeout(subirUma, 7000);     // espera a tela de campeã (6,5s) sumir
+      }
+    },130);
+  }
+  subirUma();
+}
+document.getElementById("demo-btn").addEventListener("click",demo);
+addEventListener("keydown",e=>{ if(e.key==="d"||e.key==="D") demo(); });
+
+/* ============================================================
+   START
+   ============================================================ */
+const LOOP = new URLSearchParams(location.search).get("loop")==="1";
+function iniciarPainel(comFullscreen){
+  unlockAudio();
+  document.getElementById("start-overlay").style.display="none";
+  if(!window.__pollTimer){ atualizar(); window.__pollTimer=setInterval(atualizar,POLL_MS); }
+  if(comFullscreen && document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen().catch(()=>{}); }
+}
+document.getElementById("start-btn").addEventListener("click",()=>iniciarPainel(true));
+if(LOOP){
+  const db=document.getElementById("demo-btn"); if(db) db.style.display="none";
+  addEventListener("message",e=>{ if(e.data&&e.data.tipo==="unlock") unlockAudio(); });
+  iniciarPainel(false);   // auto-inicia dentro do rodízio (sem fullscreen do iframe)
+}
+
+// mostra na hora o que tem em cache (se houver) e já busca o atual
+(function preLoad(){
+  let temCache=false;
+  COLAB.forEach(c=>{ const ca=localStorage.getItem("cacheColab2_"+c.nome); if(ca){ estadoColab[c.nome]=JSON.parse(ca); temCache=true; } });
+  if(temCache){ const meses=mesesDisponiveisColab(); mesSel = meses.includes(mesAtual())?mesAtual():(meses[meses.length-1]||mesAtual()); renderMes(false); }
+  else render(FALLBACK, true);
+})();
+</script>
+</body>
+</html>

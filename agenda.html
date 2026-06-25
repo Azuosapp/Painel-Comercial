@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Foco do Dia — Grupo Azuos</title>
+<style>
+  :root{
+    --azul:#1f5fbf; --azul-escuro:#143a78; --azul-claro:#4f8fe0;
+    --laranja:#f08a3c; --verde:#4caf50; --amarelo:#f6c945;
+    --cinza-bg:#dfe3e8; --card-bg:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--cinza-bg);color:#1c2733;overflow:hidden;}
+
+  #start-overlay{position:fixed;inset:0;z-index:1000;background:linear-gradient(135deg,#143a78,#1f5fbf);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;gap:24px;}
+  #start-overlay h1{font-size:3vw;letter-spacing:2px;}
+  #start-overlay p{font-size:1.2vw;opacity:.85;max-width:50ch;}
+  #start-btn{font-size:1.6vw;padding:18px 48px;border:none;border-radius:999px;background:var(--amarelo);
+    color:#143a78;font-weight:800;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .15s;}
+  #start-btn:hover{transform:scale(1.05);}
+
+  #screen{height:100vh;width:100vw;display:flex;flex-direction:column;padding:1vh 1.6vw;}
+
+  header.topbar{display:flex;align-items:center;justify-content:space-between;}
+  .brand img{height:7vw;width:auto;}
+  .brand .azuos{font-size:2vw;font-weight:800;color:var(--azul);}
+  .titulo{text-align:center;flex:1;}
+  .titulo .perc{font-size:3.6vw;font-weight:800;color:var(--azul);font-style:italic;line-height:.95;}
+  .titulo .sub{font-size:2.1vw;color:var(--azul-claro);font-style:italic;line-height:.95;margin-top:1vh;}
+  .mes-texto{display:flex;align-items:center;gap:.3vw;font-size:2.6vw;font-weight:900;background:#fff;
+    border-radius:18px;padding:.4vh 1.2vw;box-shadow:0 4px 14px rgba(0,0,0,.12);}
+
+  .meio{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:1.4vh 0;}
+
+  /* CARD GRANDE DO DIA */
+  .dia{width:84vw;max-width:84vw;background:#fff;border-radius:28px;box-shadow:0 14px 40px rgba(0,0,0,.18);
+    overflow:hidden;display:flex;flex-direction:column;}
+  .dia-faixa{background:var(--cor,#1f5fbf);color:#fff;display:flex;align-items:center;justify-content:space-between;
+    padding:1.4vh 3vw;}
+  .dia-faixa.escuro{color:#5a4a00;}
+  .dia-data{font-size:1.7vw;font-weight:800;text-transform:capitalize;opacity:.95;}
+  .dia-chip{font-size:1.2vw;font-weight:900;background:rgba(255,255,255,.25);border-radius:999px;padding:.3vh 1.2vw;text-transform:uppercase;letter-spacing:1px;}
+  .dia-faixa.escuro .dia-chip{background:rgba(0,0,0,.12);}
+
+  .dia-corpo{padding:2.4vh 3vw 2.8vh;display:flex;flex-direction:column;gap:1.4vh;}
+  .dia-rotulo{font-size:1.5vw;font-weight:800;color:#7a8aa0;text-transform:uppercase;letter-spacing:1px;}
+  .dia-nome{font-size:4.4vw;font-weight:900;color:var(--cor,#1f5fbf);line-height:1;display:flex;align-items:center;gap:1vw;}
+  .dia-desc{font-size:1.7vw;font-weight:600;color:#41577a;line-height:1.2;}
+  .dia-meta-tit{font-size:1.5vw;font-weight:900;color:var(--azul-escuro);margin-top:.4vh;}
+  .dia-metas{display:flex;flex-direction:column;gap:1vh;}
+  .dia-metas .m{display:flex;align-items:flex-start;gap:1vw;background:linear-gradient(180deg,#f4f8fd,#eaf1fa);
+    border-left:.6vw solid var(--cor,#1f5fbf);border-radius:12px;padding:1.1vh 1.6vw;
+    font-size:1.9vw;font-weight:800;color:#22364d;line-height:1.12;}
+  .dia-metas .m::before{content:"🎯";font-size:1.6vw;flex:none;}
+  .dia-obj{font-size:1.4vw;font-weight:700;color:#5a6b80;font-style:italic;}
+  .dia-obj b{color:var(--azul);}
+  .dia-dicas{margin-top:.4vh;border-top:2px dashed #d3dbe6;padding-top:1.2vh;}
+  .dia-dicas-tit{font-size:1.3vw;font-weight:900;color:#7a8aa0;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.7vh;}
+  .dia-dicas ul{list-style:none;display:flex;flex-direction:column;gap:.6vh;}
+  .dia-dicas li{font-size:1.35vw;font-weight:600;color:#41577a;display:flex;gap:.7vw;align-items:flex-start;line-height:1.12;}
+  .dia-dicas li::before{content:"💡";flex:none;}
+
+  /* dia sem operação */
+  .dia.livre .dia-nome{font-size:3vw;color:var(--azul-claro);}
+  .dia.livre .dia-metas .m{font-size:1.6vw;}
+
+  footer{display:flex;align-items:center;justify-content:center;padding-top:.4vh;}
+  .status{font-size:1vw;color:#41577a;font-weight:700;}
+</style>
+</head>
+<body>
+  <div id="start-overlay">
+    <h1>🎯 FOCO DO DIA</h1>
+    <p>A ação do dia para o time comercial, com a meta a cumprir. Clique para iniciar.</p>
+    <button id="start-btn">Iniciar painel</button>
+  </div>
+
+  <div id="screen">
+    <header class="topbar">
+      <div class="brand">
+        <img src="assets/azuos.png" alt="Azuos"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'azuos',textContent:'AZUOS'}))"/>
+      </div>
+      <div class="titulo">
+        <div class="perc">Foco do Dia</div>
+        <div class="sub">O que o time faz hoje?</div>
+      </div>
+      <div class="mes-banner"><div class="mes-texto" id="mes-texto">🗓️</div></div>
+    </header>
+
+    <div class="meio">
+      <div class="dia" id="dia"></div>
+    </div>
+
+    <footer><div class="status" id="status">—</div></footer>
+  </div>
+
+<script>
+/* ============================================================
+   OPERAÇÕES — dias do CALENDÁRIO (Canva) + metas reais (Google)
+   ============================================================ */
+const ANO=2026;
+const ACOES = {
+  powerhour:{nome:"Power Hour de Ligações", emoji:"📞", cor:"#f5821f",
+    desc:"Das 08h às 10h, toda a equipe focada exclusivamente em ligações (Outbound).",
+    metas:["30 ligações por colaborador"],
+    dias:["06-02","06-03","06-04","07-01","07-02","07-03","08-04","08-05","08-06","09-01","09-02","09-03","09-30","10-01","10-02","11-03","11-04","11-05","12-01","12-02","12-03"]},
+  indicacao:{nome:"Operação Indicação", emoji:"🤝", cor:"#2ec4d6",
+    desc:"",
+    metas:["Buscar indicação dos clientes fechados recentemente"],
+    dias:["06-09","07-07","08-11","09-08","10-06","11-10","12-08"]},
+  visita:{nome:"Visita Estratégica", emoji:"🏢", cor:"#f6c945", escuro:true,
+    desc:"Cada vendedor agenda as visitas da semana.",
+    metas:["Agendar no mínimo 2 visitas presenciais em empresas da região"],
+    dias:["06-11","07-09","08-13","09-10","10-08","11-12","12-10"]},
+  contatos:{nome:"Operação Contatos", emoji:"🎯", cor:"#2a36a8",
+    desc:"Prospecção Outbound de empresas com faturamento acima de R$ 250 mil/mês.",
+    metas:["100 contatos por SDR — ligação, WhatsApp e Instagram (de quarta a sexta)"],
+    objetivo:"Gerar volume e alimentar o funil comercial.",
+    dias:["06-16","06-17","06-18","07-14","07-15","07-16","08-17","08-18","08-19","09-15","09-16","09-17","10-13","10-14","10-15","11-17","11-18","11-19","12-15","12-16","12-17"]},
+  virada:{nome:"Operação Virada de Meta", emoji:"🔥", cor:"#ec4faa",
+    desc:"Toda a equipe em modo de fechamento no último dia de meta — das 08h às 18h.",
+    metas:["Contato com 100% das propostas abertas","Leads sem retorno nos últimos 30 dias","Reativação de ex-clientes","Ligações para as indicações recebidas no mês"],
+    dias:["06-19","07-20","08-20","09-18","10-20","11-20","12-18"]},
+  progoias:{nome:"Desafio ProGoiás e Benefícios Fiscais", emoji:"🏭", cor:"#6aa84f",
+    desc:"Campanha focada em indústrias, distribuidores e atacadistas.",
+    metas:["20 abordagens por dia","5 reuniões por colaborador na semana"],
+    dias:["06-23","06-24","06-25","07-21","07-22","07-23","08-25","08-26","08-27","09-22","09-23","09-24","10-21","10-22","10-23","11-24","11-25","11-26","12-22","12-23","12-24"]},
+  ultima:{nome:"Última Semana de Fechamento", emoji:"⏰", cor:"#e8392f",
+    desc:"Mutirão comercial focado em propostas abertas.",
+    metas:["Contato com 100% das propostas pendentes"],
+    dias:["06-29","07-27","08-31","09-28","10-26","11-30","12-28"]},
+};
+const AGENDA={};
+for(const k in ACOES) ACOES[k].dias.forEach(md=> AGENDA[`${ANO}-${md}`]=k);
+
+// dias sem operação específica → fala por departamento
+const FALAS=[
+  "Sem operação marcada hoje — organize o pipeline e adiante os follow-ups.",
+  "Mantenha o ritmo: revise as propostas em aberto e priorize os leads quentes.",
+  "Foco no relacionamento: retome contatos parados e deixe o CRM em dia.",
+  "Planeje os próximos passos: confira as metas e prepare a lista de contatos.",
+];
+
+// dicas práticas pro time comercial (acrescentadas por conta própria)
+const DICAS = {
+  powerhour:["Comece pelos leads mais quentes da lista","Tenha um script curto e registre cada retorno no CRM","Foque em conversas que avançam — 30 ligações efetivas até as 10h"],
+  indicacao:["Liste os clientes fechados nos últimos 30 a 60 dias","Peça 2 indicações qualificadas a cada um","Agradeça e ofereça um benefício por indicação que fechar"],
+  visita:["Confirme horário e endereço na véspera","Leve proposta e material institucional impresso","Priorize empresas da região com perfil de cliente ideal"],
+  contatos:["Distribua a meta: cerca de 33 contatos por dia (qua a sex)","Misture os canais: ligação, WhatsApp e Instagram","Registre cada contato na hora pra não perder o follow-up"],
+  virada:["Liste todas as propostas em aberto antes de começar","Faça follow-up de cada uma ainda hoje","Crie urgência com uma condição ou validade especial"],
+  progoias:["Agende as reuniões já no começo da semana","Qualifique o lead antes pra reunião render","Confirme presença 1 dia antes pra reduzir falta"],
+  ultima:["Priorize as propostas pendentes mais antigas","Ligue pra destravar cada uma — entenda a objeção","Feche o mês sem deixar nenhuma proposta parada"],
+};
+const DICAS_LIVRE=["Atualize o CRM de tudo que avançou","Reforce o follow-up das propostas em aberto","Prepare a abordagem dos próximos contatos"];
+
+const DIAS_SEMANA=["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
+const MESES=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const MESES_MAI=["JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO","JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
+const CORES_MES=["#e0592b","#4caf50","#f6c945","#4f8fe0"];
+
+function hojeDate(){ return window.__diaTeste ? new Date(window.__diaTeste+"T12:00:00") : new Date(); }
+function chaveDe(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+
+function setMesBanner(d){
+  const nome=MESES_MAI[d.getMonth()];
+  document.getElementById("mes-texto").innerHTML=
+    [...nome].map((c,i)=>`<span style="color:${CORES_MES[i%CORES_MES.length]}">${c}</span>`).join("")
+    +`<span style="font-size:1.6vw">🗓️</span>`;
+}
+
+function render(){
+  const d=hojeDate();
+  setMesBanner(d);
+  const chave=chaveDe(d);
+  const dataExt=`${DIAS_SEMANA[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]}`;
+  const opKey=AGENDA[chave];
+  const fimDeSemana = d.getDay()===0 || d.getDay()===6;
+  const dia=document.getElementById("dia");
+
+  if(opKey){
+    const op=ACOES[opKey];
+    dia.className="dia";
+    dia.style.setProperty("--cor", op.cor);
+    const metas=op.metas.map(m=>`<div class="m">${m}</div>`).join("");
+    dia.innerHTML=`
+      <div class="dia-faixa ${op.escuro?"escuro":""}">
+        <div class="dia-data">${dataExt}</div>
+        <div class="dia-chip">Hoje é dia de</div>
+      </div>
+      <div class="dia-corpo">
+        <div class="dia-nome">${op.emoji} Ação: ${op.nome}</div>
+        ${op.desc?`<div class="dia-desc">${op.desc}</div>`:""}
+        <div class="dia-meta-tit">${op.metas.length>1?"Metas do dia:":"Meta do dia:"}</div>
+        <div class="dia-metas">${metas}</div>
+        ${op.objetivo?`<div class="dia-obj">🎯 <b>Objetivo:</b> ${op.objetivo}</div>`:""}
+        <div class="dia-dicas">
+          <div class="dia-dicas-tit">Dicas pro time comercial</div>
+          <ul>${(DICAS[opKey]||[]).map(t=>`<li>${t}</li>`).join("")}</ul>
+        </div>
+      </div>`;
+  } else {
+    dia.className="dia livre";
+    dia.style.setProperty("--cor", "#4f8fe0");
+    const fala = fimDeSemana ? "Bom descanso! Segunda o time volta com tudo. 💪" : FALAS[d.getDate()%FALAS.length];
+    dia.innerHTML=`
+      <div class="dia-faixa">
+        <div class="dia-data">${dataExt}</div>
+        <div class="dia-chip">${fimDeSemana?"Fim de semana":"Foco comercial"}</div>
+      </div>
+      <div class="dia-corpo">
+        <div class="dia-nome">🌟 ${fimDeSemana?"Sem agenda hoje":"Sem operação específica hoje"}</div>
+        <div class="dia-metas"><div class="m">${fala}</div></div>
+        ${fimDeSemana?"":`<div class="dia-dicas">
+          <div class="dia-dicas-tit">Dicas pro time comercial</div>
+          <ul>${DICAS_LIVRE.map(t=>`<li>${t}</li>`).join("")}</ul>
+        </div>`}
+      </div>`;
+  }
+
+  document.getElementById("status").textContent =
+    `🟢 ${dataExt} · ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}`;
+}
+
+/* ============================================================
+   START + LOOP
+   ============================================================ */
+const LOOP = new URLSearchParams(location.search).get("loop")==="1";
+function iniciar(comFullscreen){
+  document.getElementById("start-overlay").style.display="none";
+  render();
+  if(!window.__tick) window.__tick=setInterval(render, 60000);
+  if(comFullscreen && document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen().catch(()=>{}); }
+}
+document.getElementById("start-btn").addEventListener("click",()=>iniciar(true));
+if(LOOP){ addEventListener("message",e=>{}); iniciar(false); }
+render();
+</script>
+</body>
+</html>
