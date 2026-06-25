@@ -30,8 +30,10 @@
   .titulo{text-align:center;flex:1;}
   .titulo .perc{font-size:3.6vw;font-weight:800;color:var(--azul);font-style:italic;line-height:.95;}
   .titulo .sub{font-size:2.1vw;color:var(--azul-claro);font-style:italic;line-height:.95;margin-top:1vh;}
-  .mes-texto{display:flex;align-items:center;gap:.3vw;font-size:2.6vw;font-weight:900;background:#fff;
-    border-radius:18px;padding:.4vh 1.2vw;box-shadow:0 4px 14px rgba(0,0,0,.12);}
+  .mes-texto{display:flex;align-items:center;gap:.4vw;font-size:1.35vw;font-weight:800;color:var(--azul);
+    background:#fff;border-radius:14px;padding:.5vh .9vw;box-shadow:0 4px 14px rgba(0,0,0,.12);
+    border:2px solid #c3cedd;text-transform:capitalize;}
+  .mes-texto .cal{font-size:1.6vw;line-height:1;}
 
   .meio{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:1.4vh 0;}
 
@@ -165,11 +167,11 @@ const CORES_MES=["#e0592b","#4caf50","#f6c945","#4f8fe0"];
 function hojeDate(){ return window.__diaTeste ? new Date(window.__diaTeste+"T12:00:00") : new Date(); }
 function chaveDe(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
+const MESES_AB=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 function setMesBanner(d){
-  const nome=MESES_MAI[d.getMonth()];
+  // mesma caixinha das outras telas: 📅 Jun/2026
   document.getElementById("mes-texto").innerHTML=
-    [...nome].map((c,i)=>`<span style="color:${CORES_MES[i%CORES_MES.length]}">${c}</span>`).join("")
-    +`<span style="font-size:1.6vw">🗓️</span>`;
+    `<span class="cal">📅</span> ${MESES_AB[d.getMonth()]}/${d.getFullYear()}`;
 }
 
 function render(){
