@@ -112,6 +112,24 @@
   .fm-icone{font-size:13vw;line-height:1;filter:drop-shadow(0 8px 20px rgba(0,0,0,.5));}
   .fm-titulo{font-size:5vw;font-weight:900;font-style:italic;color:#fff;text-shadow:0 4px 18px rgba(0,0,0,.5);}
   .fm-sub{font-size:2.2vw;font-weight:800;color:#ffd700;}
+
+  /* ---------- Comemoração de VENDA NOVA (foto da SDR + o que foi vendido) ---------- */
+  #venda{position:fixed;inset:0;z-index:960;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(circle at center, rgba(20,58,120,.5), rgba(20,58,120,.85));backdrop-filter:blur(3px);}
+  #venda.show{display:flex;animation:fmFade .35s;}
+  .venda-card{display:flex;flex-direction:column;align-items:center;gap:1.2vh;text-align:center;}
+  .venda-tag{font-size:2vw;font-weight:900;color:#ffd700;letter-spacing:2px;text-shadow:0 3px 12px rgba(0,0,0,.4);}
+  .venda-foto-wrap{position:relative;padding:.6vw;border-radius:50%;
+    background:linear-gradient(135deg,#ffd700,#fff1a8,#ffcc33);box-shadow:0 0 50px 12px rgba(255,215,0,.7);
+    animation:fmBalanca 1s ease-in-out infinite;}
+  .venda-foto{width:15vw;height:15vw;border-radius:50%;object-fit:cover;border:.4vw solid #fff;
+    background:#dde6f0;align-items:center;justify-content:center;display:flex;font-size:7vw;font-weight:800;color:var(--azul);}
+  .venda-rojao{position:absolute;bottom:-1vw;right:-2vw;font-size:7.5vw;line-height:1;
+    filter:drop-shadow(0 4px 10px rgba(0,0,0,.45));z-index:3;}
+  .venda-nome{font-size:4vw;font-weight:900;color:#fff;font-style:italic;text-shadow:0 4px 18px rgba(0,0,0,.5);}
+  .venda-msg{font-size:2.3vw;font-weight:800;color:#fff;max-width:74vw;line-height:1.25;}
+  .venda-msg b{color:#ffd700;}
+  .venda-valor{font-size:3.4vw;font-weight:900;color:#7CFC98;text-shadow:0 3px 14px rgba(0,0,0,.45);}
 </style>
 </head>
 <body>
@@ -175,6 +193,19 @@
     </div>
   </div>
 
+  <div id="venda">
+    <div class="venda-card">
+      <div class="venda-tag">🎉 NOVA VENDA!</div>
+      <div class="venda-foto-wrap">
+        <div class="venda-rojao" id="venda-rojao">🔔</div>
+        <img class="venda-foto" id="venda-foto" alt=""/>
+      </div>
+      <div class="venda-nome" id="venda-nome"></div>
+      <div class="venda-msg" id="venda-msg"></div>
+      <div class="venda-valor" id="venda-valor"></div>
+    </div>
+  </div>
+
 <script>
 /* ============================================================
    FONTE DE DADOS — mesma planilha da Tela 2
@@ -228,8 +259,10 @@ function acharColunas(rows){
     const cMesFech=h.findIndex(x=>x.includes("faturamento")&&x.includes("fechado"));
     let cValor=h.findIndex(x=>x.includes("valor")&&x.includes("final"));
     const cResp=h.findIndex(x=>x.includes("responsavel")&&x.includes("preenchimento"));
+    const cEmpresa=h.findIndex(x=>x==="empresa");                       // col D (não "empresa do grupo")
+    const cServ=h.findIndex(x=>x.includes("tipo")&&x.includes("servico")); // col G
     if(cMesFech<0||cValor<0) continue;
-    return {hIdx:i, cStatus, cRec, cMesFech, cValor, cResp};
+    return {hIdx:i, cStatus, cRec, cMesFech, cValor, cResp, cEmpresa, cServ};
   }
   return null;
 }
@@ -257,7 +290,10 @@ async function lerPlanilha(){
     const tipo=norm(r[col.cRec]).includes("recorr")?"rec":"uni";
     const valor=parseValor(r[col.cValor]);
     const p=col.cResp>=0?pessoaDe(r[col.cResp]):null;
-    linhas.push({mes, tipo, valor, pessoa:p?p.nome:null});
+    const empresa=(col.cEmpresa>=0?(r[col.cEmpresa]||""):"").trim();
+    const servico=(col.cServ>=0?(r[col.cServ]||""):"").trim();
+    const resp=(col.cResp>=0?(r[col.cResp]||""):"").trim();
+    linhas.push({mes, tipo, valor, pessoa:p?p.nome:null, foto:p?p.foto:null, resp, empresa, servico});
   }
   return linhas;
 }
@@ -269,6 +305,10 @@ let LINHAS=JSON.parse(localStorage.getItem("cacheFat")||"[]"); // última leitur
 let mesSel="";
 let primeiraLeitura=true;
 const marcoAnterior={};
+const vendaVista={};      // assinatura -> contagem (detecta linha de venda nova)
+const filaCeleb=[];       // fila ÚNICA de comemorações (venda + meta), uma de cada vez
+let celebrando=false;
+function assinaturaVenda(l){ return [norm(l.mes),l.tipo,Math.round(l.valor*100),norm(l.empresa),norm(l.servico),norm(l.resp)].join("|"); }
 
 function mesAtualNome(){ return MESES_NOME[new Date().getMonth()]; }  // mês atual automático
 function mesesDisponiveis(){
@@ -372,14 +412,24 @@ function render(semComemorar){
 const statusEl=document.getElementById("status");
 async function atualizar(){
   try{
-    LINHAS=await lerPlanilha();
+    const novas=await lerPlanilha();
+    LINHAS=novas;
     try{ localStorage.setItem("cacheFat", JSON.stringify(LINHAS)); }catch(e){} // guarda última leitura boa
     if(primeiraLeitura){
       const disp=mesesDisponiveis(); const cur=mesAtualNome();
       mesSel = disp.find(m=>norm(m)===norm(cur)) || disp[0] || cur;
       sincronizarMetaInput();
     }
+    // conta as assinaturas das linhas de venda p/ detectar VENDA NOVA
+    const agora={}, detalhe={};
+    novas.forEach(l=>{ const sig=assinaturaVenda(l); agora[sig]=(agora[sig]||0)+1; if(!detalhe[sig]) detalhe[sig]=l; });
     render(primeiraLeitura);
+    if(!primeiraLeitura){
+      Object.keys(agora).forEach(sig=>{ const d=(agora[sig]||0)-(vendaVista[sig]||0);
+        for(let k=0;k<d;k++) enfileirar({tipo:"venda", linha:detalhe[sig]}); });   // pula pra cá + som + foto
+    }
+    for(const k in vendaVista) delete vendaVista[k];
+    Object.assign(vendaVista, agora);
     primeiraLeitura=false;
     const d=new Date();
     statusEl.textContent=`🟢 Última atualização: ${d.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}`;
@@ -412,8 +462,46 @@ metaInp.addEventListener("blur",()=>{ const m=getMeta(mesSel); metaInp.value = m
    COMEMORAÇÃO DA META
    ============================================================ */
 const festaEl=document.getElementById("festa-meta");
-let festaTimer=null;
-function comemorarMeta(marco, mes, total, meta){
+const vendaEl=document.getElementById("venda");
+let festaTimer=null, vendaTimer=null;
+
+// fila única: mostra uma comemoração por vez (evita sobrepor venda + meta)
+function enfileirar(job){ filaCeleb.push(job); tocarCeleb(); }
+function tocarCeleb(){
+  if(celebrando || !filaCeleb.length) return;
+  celebrando=true;
+  const job=filaCeleb.shift();
+  const dur = job.tipo==="venda" ? execVenda(job.linha) : execMeta(job.marco, job.mes, job.total, job.meta);
+  if(LOOP){ try{ parent.postMessage({tipo:"comemorar", dur:dur+300}, "*"); }catch(e){} } // loop pula pra esta tela
+  setTimeout(()=>{ celebrando=false; tocarCeleb(); }, dur+500);
+}
+
+// VENDA NOVA — foto da SDR + o que foi vendido (empresa · serviço) + valor
+function execVenda(l){
+  const foto=document.getElementById("venda-foto");
+  const nome=(l.pessoa||l.resp||"Equipe").trim();
+  const ini=(nome[0]||"•").toUpperCase();
+  if(l.foto){
+    foto.textContent="";
+    foto.onerror=()=>{ foto.replaceWith(Object.assign(document.createElement("div"),{className:"venda-foto",id:"venda-foto",textContent:ini})); };
+    foto.src=l.foto; foto.style.display="flex";
+  }else{ foto.removeAttribute("src"); foto.style.display="flex"; foto.textContent=ini; }
+  document.getElementById("venda-rojao").textContent = l.tipo==="rec" ? "🔔" : "💼";
+  document.getElementById("venda-nome").textContent = nome;
+  const oque=[l.empresa, l.servico].filter(Boolean).join(" · ") || "Nova venda fechada";
+  const tipoTxt = l.tipo==="rec" ? "recorrente" : "único";
+  document.getElementById("venda-msg").innerHTML = `Fechou <b>${oque}</b><br><span style="opacity:.8">serviço ${tipoTxt}</span>`;
+  document.getElementById("venda-valor").textContent = l.valor>0 ? valorBRL(l.valor) : "";
+  vendaEl.classList.add("show");
+  tocarSino(); festaConfete(200);
+  const dur=5600;
+  clearTimeout(vendaTimer); vendaTimer=setTimeout(()=>vendaEl.classList.remove("show"), dur);
+  return dur;
+}
+
+// META (marco 50/80/100%) — vai pela mesma fila
+function comemorarMeta(marco, mes, total, meta){ enfileirar({tipo:"meta", marco, mes, total, meta}); }
+function execMeta(marco, mes, total, meta){
   const ic=document.getElementById("fm-icone");
   const tit=document.getElementById("fm-titulo");
   const sub=document.getElementById("fm-sub");
@@ -426,10 +514,9 @@ function comemorarMeta(marco, mes, total, meta){
   }
   festaEl.classList.add("show");
   tocarSino(); festaConfete(marco>=100?260:160);
-  clearTimeout(festaTimer);
   const dur = marco>=100?6500:5000;
-  festaTimer=setTimeout(()=>festaEl.classList.remove("show"), dur);
-  if(LOOP){ try{ parent.postMessage({tipo:"comemorar", dur:dur+300}, "*"); }catch(e){} }
+  clearTimeout(festaTimer); festaTimer=setTimeout(()=>festaEl.classList.remove("show"), dur);
+  return dur;
 }
 
 /* SOM */
@@ -464,8 +551,10 @@ function loopConfete(){
 /* DEMONSTRAÇÃO — 50% -> 80% -> meta batida */
 document.getElementById("demo-btn").addEventListener("click",()=>{
   unlockAudio();
+  // venda nova de exemplo + os marcos de meta
+  enfileirar({tipo:"venda", linha:{pessoa:"Giovana", foto:"assets/giovana.jpg", resp:"Giovana", tipo:"rec", empresa:"EMPRESA EXEMPLO LTDA", servico:"Contabilidade", valor:1250}});
   const mes=mesSel, meta=getMeta(mes)||100000;
-  [50,80,100].forEach((mc,i)=> setTimeout(()=>comemorarMeta(mc, mes, meta*mc/100, meta), i*2600));
+  [50,80,100].forEach(mc=> comemorarMeta(mc, mes, meta*mc/100, meta));
 });
 
 /* START */

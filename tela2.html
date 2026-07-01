@@ -355,14 +355,9 @@ async function atualizar(){
     if(primeiraLeitura) filtroMes=mesPadrao();   // abre no mês atual
     const agora=totalPorPessoaTipo();
     render();
-    if(!primeiraLeitura){
-      PESSOAS.forEach(p=>["rec","uni"].forEach(tipo=>{
-        const k=p.nome+"|"+tipo;
-        const d=(agora[k]||0)-(antes[k]||0);
-        if(d>0) filaComemora.push({pessoa:p, tipo, n:d});
-      }));
-      tocarFila();
-    }
+    // A comemoração de venda nova agora acontece na tela de FATURAMENTO (Tela 3).
+    // Aqui no Ranking mantemos só as torres, sem festa/som, pra não comemorar duas vezes.
+    void antes;
     Object.keys(agora).forEach(k=>vendaAnterior[k]=agora[k]);
     primeiraLeitura=false;
     const d=new Date();
