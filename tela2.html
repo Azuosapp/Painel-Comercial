@@ -186,6 +186,19 @@
 const SHEET_ID="1e87Et34W-noR8FgB2Kw0j8YeONApF1R5fMKZOG8TC2M";
 const SHEET_NAME="Fechamento de comissão a partir de Março";
 const POLL_MS=60000;
+// Chave da API do Google Sheets: lê a planilha INTEIRA ignorando qualquer filtro.
+// Vazio ("") = usa o modo antigo (gviz), que respeita filtro e pode zerar se filtrarem.
+const API_KEY="AIzaSyCdqkcU4mOIA-l0h_pIw6wlvO8y5nUr_wk";
+// lê as linhas da aba: por API (à prova de filtro) se houver chave; senão por gviz CSV
+async function lerLinhas(){
+  const aba=encodeURIComponent(SHEET_NAME);
+  if(API_KEY){
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${aba}?key=${API_KEY}`;
+    return (JSON.parse(await fetchTexto(url)).values)||[];
+  }
+  const gv=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${aba}`;
+  return parseCSV(await fetchTexto(gv));
+}
 
 // Só estas 4 colaboradoras entram no ranking (responsável pelo preenchimento)
 const PESSOAS=[
@@ -242,8 +255,7 @@ async function fetchTexto(url, tentativas=3){
 }
 /* lê a planilha e devolve as linhas de venda das 4 pessoas */
 async function lerPlanilha(){
-  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
-  const rows=parseCSV(await fetchTexto(url));
+  const rows=await lerLinhas();
   const col=acharColunas(rows);
   if(!col) throw new Error("cabeçalho não encontrado");
   const linhas=[];

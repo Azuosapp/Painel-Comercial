@@ -213,6 +213,19 @@
 const SHEET_ID="1e87Et34W-noR8FgB2Kw0j8YeONApF1R5fMKZOG8TC2M";
 const SHEET_NAME="Fechamento de comissão a partir de Março";
 const POLL_MS=60000;
+// Chave da API do Google Sheets: lê a planilha INTEIRA ignorando qualquer filtro.
+// Vazio ("") = usa o modo antigo (gviz), que respeita filtro e pode zerar se filtrarem.
+const API_KEY="AIzaSyCdqkcU4mOIA-l0h_pIw6wlvO8y5nUr_wk";
+// lê as linhas da aba: por API (à prova de filtro) se houver chave; senão por gviz CSV
+async function lerLinhas(){
+  const aba=encodeURIComponent(SHEET_NAME);
+  if(API_KEY){
+    const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${aba}?key=${API_KEY}`;
+    return (JSON.parse(await fetchTexto(url)).values)||[];
+  }
+  const gv=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${aba}`;
+  return parseCSV(await fetchTexto(gv));
+}
 const MESES_NOME=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const MESES_ABREV=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 const MARCOS=[50,80,100];
@@ -256,7 +269,7 @@ function acharColunas(rows){
     const cStatus=h.findIndex(x=>x==="status");
     const cRec=h.findIndex(x=>x.includes("recorr"));
     if(cStatus<0||cRec<0) continue;
-    const cMesFech=h.findIndex(x=>x.includes("faturamento")&&x.includes("fechado"));
+    const cMesFech=h.findIndex(x=>x.includes("fechado"));  // "MÊS FECHADO" (API) ou "FATURAMENTO MÊS FECHADO" (gviz)
     let cValor=h.findIndex(x=>x.includes("valor")&&x.includes("final"));
     const cResp=h.findIndex(x=>x.includes("responsavel")&&x.includes("preenchimento"));
     const cEmpresa=h.findIndex(x=>x==="empresa");                       // col D (não "empresa do grupo")
@@ -277,8 +290,7 @@ async function fetchTexto(url, tentativas=3){
   throw erro||new Error("falha");
 }
 async function lerPlanilha(){
-  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
-  const rows=parseCSV(await fetchTexto(url));
+  const rows=await lerLinhas();
   const col=acharColunas(rows);
   if(!col) throw new Error("cabeçalho não encontrado");
   const linhas=[];
