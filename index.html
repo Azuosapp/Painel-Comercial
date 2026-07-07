@@ -83,6 +83,15 @@
   function irPara(idx){ passo=((idx%SEQ.length)+SEQ.length)%SEQ.length; exec(); }
   document.getElementById("nav-prev").addEventListener("click",()=>{ if(rodando) irPara(passo-1); });
   document.getElementById("nav-next").addEventListener("click",()=>{ if(rodando) irPara(passo+1); });
+
+  // tecla "T" = TESTAR/demonstrar a comemoração de venda (pula pra Faturamento e comemora)
+  addEventListener("keydown",(ev)=>{
+    if(!rodando) return;
+    if(ev.key==="t"||ev.key==="T"){
+      const fr=frames[3];  // Meta de Faturamento
+      if(fr&&fr.contentWindow){ try{ fr.contentWindow.postMessage({tipo:"testar-venda"},"*"); }catch(e){} }
+    }
+  });
 </script>
 </body>
 </html>

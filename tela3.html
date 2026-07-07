@@ -580,7 +580,11 @@ function iniciarPainel(comFullscreen){
 document.getElementById("start-btn").addEventListener("click",()=>iniciarPainel(true));
 if(LOOP){
   const db=document.getElementById("demo-btn"); if(db) db.style.display="none";
-  addEventListener("message",e=>{ if(e.data&&e.data.tipo==="unlock") unlockAudio(); });
+  addEventListener("message",e=>{
+    if(!e.data) return;
+    if(e.data.tipo==="unlock") unlockAudio();
+    if(e.data.tipo==="testar-venda"){ unlockAudio(); enfileirar({tipo:"venda", linha:{pessoa:"Giovana", foto:"assets/giovana.jpg", resp:"Giovana", tipo:"rec", empresa:"EMPRESA TESTE LTDA", servico:"Contabilidade Mensal", valor:1500}}); }
+  });
   iniciarPainel(false);
 }
 // mostra na hora o que tem em cache (se houver) e já busca o atual
