@@ -4,21 +4,27 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Painel Comercial — Grupo Azuos</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="stylesheet" href="assets/azuos-tokens.css" />
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;width:100%;background:#0b1c3a;overflow:hidden;font-family:"Segoe UI",system-ui,sans-serif;}
   .frame{position:fixed;inset:0;width:100vw;height:100vh;border:0;opacity:0;visibility:hidden;transition:opacity .6s ease;}
   .frame.ativo{opacity:1;visibility:visible;}
-  #overlay{position:fixed;inset:0;z-index:10;background:linear-gradient(135deg,#143a78,#1f5fbf);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;color:#fff;text-align:center;}
+  #overlay{position:fixed;inset:0;z-index:10;
+    background:var(--color-primary, #2B3A8C);
+    font-family:var(--font-sans);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;color:var(--color-primary-fg, #fff);text-align:center;}
   #overlay h1{font-size:3vw;letter-spacing:2px;}
   #overlay p{font-size:1.2vw;opacity:.85;max-width:56ch;}
-  #go{font-size:1.6vw;padding:18px 52px;border:none;border-radius:999px;background:#f6c945;color:#143a78;
+  #go{font-size:1.6vw;padding:18px 52px;border:none;border-radius:var(--radius-full, 999px);
+    background:var(--color-accent, #E6E635);color:var(--color-accent-fg, #232E73);
+    font-family:var(--font-sans);
     font-weight:800;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .15s;}
   #go:hover{transform:scale(1.05);}
   #dots{position:fixed;bottom:2.6vh;right:1.6vw;z-index:8;display:flex;gap:10px;}
   #dots span{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.45);box-shadow:0 1px 4px rgba(0,0,0,.4);transition:.3s;}
-  #dots span.on{background:#f6c945;transform:scale(1.25);}
+  #dots span.on{background:var(--color-accent, #E6E635);transform:scale(1.25);}
   /* setas pra trocar de tela manualmente */
   .nav{position:fixed;top:50%;transform:translateY(-50%);z-index:9;width:3.4vw;height:9vh;border:none;
     border-radius:14px;background:rgba(20,58,120,.30);color:#fff;font-size:3.2vw;font-weight:900;cursor:pointer;
