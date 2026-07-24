@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Meta de Faturamento — Grupo Azuos</title>
+<script src="assets/js/zuzu.js"></script>
 <style>
   :root{
     --azul:#1f5fbf; --azul-escuro:#143a78; --azul-claro:#4f8fe0;
@@ -134,10 +135,15 @@
 </head>
 <body>
   <div id="start-overlay">
+    <div id="zuzu-oi"></div>
     <h1>💰 META DE FATURAMENTO</h1>
     <p>Acompanhe o faturamento do mês rumo à meta. Clique para iniciar — o som das comemorações precisa de um toque seu.</p>
     <button id="start-btn">Iniciar painel</button>
   </div>
+  <script>
+    (function(){ var el=document.getElementById('zuzu-oi');
+      if(el&&window.zuzu) el.innerHTML=window.zuzu({pose:'moeda',anim:'float',size:'lg'}); })();
+  </script>
 
   <div id="screen">
     <header class="topbar">

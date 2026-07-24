@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Percurso de Meta — Grupo Azuos</title>
+<script src="assets/js/zuzu.js"></script>
 <style>
   :root{
     --azul:#1f5fbf;
@@ -206,10 +207,15 @@
 <body>
 
 <div id="start-overlay">
+  <div id="zuzu-oi"></div>
   <h1>PERCURSO DE META · GRUPO AZUOS</h1>
   <p>Painel do time comercial. Clique para iniciar a exibição em tela cheia com som e animações de meta atingida.</p>
   <button id="start-btn">▶ Iniciar painel</button>
 </div>
+<script>
+  (function(){ var el=document.getElementById('zuzu-oi');
+    if(el&&window.zuzu) el.innerHTML=window.zuzu({pose:'apontando',anim:'float',size:'lg'}); })();
+</script>
 
 <div id="screen">
   <header class="topbar">
